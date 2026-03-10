@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
 
 interface Asset {
   symbol: string;
@@ -68,8 +69,12 @@ const TYPE_LABELS = {
 
 function ChartsContent() {
   const searchParams = useSearchParams();
+  const mode = useTradingMode();
   const [watchlist, setWatchlist] = useState<Asset[]>(DEFAULT_ASSETS);
   const [selectedSymbol, setSelectedSymbol] = useState(searchParams.get('symbol') || 'AAPL');
+  const [showTradeModal, setShowTradeModal] = useState<'buy' | 'sell' | null>(null);
+  const [quantity, setQuantity] = useState('1');
+  const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -203,21 +208,146 @@ function ChartsContent() {
         </div>
       </div>
 
+      {/* Trading Mode Indicator */}
+      <div className={`flex items-center justify-center gap-2 text-sm py-2 rounded-xl ${
+        mode === 'paper' ? 'bg-[#007aff]/15 text-[#007aff]' : 'bg-[#00d632]/15 text-[#00d632]'
+      }`}>
+        <span>{mode === 'paper' ? '📄' : '💰'}</span>
+        <span className="font-medium">{mode === 'paper' ? 'Paper Trading' : 'Live Trading'}</span>
+      </div>
+
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-3">
-        <button className="btn btn-primary">
+        <button 
+          onClick={() => setShowTradeModal('buy')}
+          className="btn bg-[#00d632] text-black font-semibold"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Buy
+          Buy {selectedSymbol}
         </button>
-        <button className="btn btn-secondary border border-[#ff3b30] text-[#ff3b30]">
+        <button 
+          onClick={() => setShowTradeModal('sell')}
+          className="btn bg-[#ff3b30] text-white font-semibold"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
           </svg>
-          Sell
+          Sell {selectedSymbol}
         </button>
       </div>
+
+      {/* Trade Modal */}
+      {showTradeModal && (
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-end md:items-center justify-center animate-fade-in">
+          <div className="bg-[#1a1a1a] w-full md:w-[400px] md:rounded-2xl rounded-t-2xl animate-slide-up">
+            {/* Header */}
+            <div className={`p-4 border-b border-[#262626] ${showTradeModal === 'buy' ? 'bg-[#00d632]/10' : 'bg-[#ff3b30]/10'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                    showTradeModal === 'buy' ? 'bg-[#00d632] text-black' : 'bg-[#ff3b30] text-white'
+                  }`}>
+                    {showTradeModal === 'buy' ? '+' : '-'}
+                  </div>
+                  <div>
+                    <p className="font-semibold">{showTradeModal === 'buy' ? 'Buy' : 'Sell'} {selectedSymbol}</p>
+                    <p className="text-xs text-[#8e8e93]">{selectedAsset?.name}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowTradeModal(null)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-[#262626] active:scale-95"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            {/* Form */}
+            <div className="p-4 space-y-4">
+              {/* Mode Badge */}
+              <div className={`text-center py-2 rounded-xl text-sm font-medium ${
+                mode === 'paper' ? 'bg-[#007aff]/15 text-[#007aff]' : 'bg-[#00d632]/15 text-[#00d632]'
+              }`}>
+                {mode === 'paper' ? '📄 Paper Trade (No Real Money)' : '💰 Real Money Trade'}
+              </div>
+
+              {/* Order Type */}
+              <div>
+                <p className="text-xs text-[#636366] mb-2">Order Type</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setOrderType('market')}
+                    className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                      orderType === 'market' ? 'bg-white text-black' : 'bg-[#262626] text-white'
+                    }`}
+                  >
+                    Market
+                  </button>
+                  <button
+                    onClick={() => setOrderType('limit')}
+                    className={`p-3 rounded-xl text-sm font-medium transition-all ${
+                      orderType === 'limit' ? 'bg-white text-black' : 'bg-[#262626] text-white'
+                    }`}
+                  >
+                    Limit
+                  </button>
+                </div>
+              </div>
+
+              {/* Quantity */}
+              <div>
+                <p className="text-xs text-[#636366] mb-2">Quantity (Shares)</p>
+                <input
+                  type="number"
+                  value={quantity}
+                  onChange={e => setQuantity(e.target.value)}
+                  min="1"
+                  className="w-full bg-[#0d0d0d] rounded-xl p-4 text-2xl font-bold text-center focus:outline-none focus:ring-2 focus:ring-[#007aff]/50"
+                />
+                <div className="flex justify-center gap-2 mt-2">
+                  {[1, 5, 10, 50, 100].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setQuantity(String(n))}
+                      className="px-3 py-1 bg-[#262626] rounded-lg text-xs font-medium"
+                    >
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Estimated */}
+              <div className="bg-[#0d0d0d] rounded-xl p-4">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#636366]">Price</span>
+                  <span>~$178.50</span>
+                </div>
+                <div className="flex justify-between text-sm mt-2">
+                  <span className="text-[#636366]">Estimated Total</span>
+                  <span className="font-semibold">${(178.50 * Number(quantity || 0)).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Submit */}
+              <button
+                className={`btn w-full font-semibold ${
+                  showTradeModal === 'buy' 
+                    ? 'bg-[#00d632] text-black' 
+                    : 'bg-[#ff3b30] text-white'
+                }`}
+              >
+                {showTradeModal === 'buy' ? 'Buy' : 'Sell'} {quantity} {selectedSymbol}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Add Asset Modal */}
       {showAddModal && (

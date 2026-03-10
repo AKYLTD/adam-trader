@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TradingModeToggle } from '@/components/TradingMode';
 
 interface Position {
   symbol: string;
@@ -32,6 +33,9 @@ export default function PositionsPage() {
 
   return (
     <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Trading Mode Toggle */}
+      <TradingModeToggle />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Portfolio</h1>

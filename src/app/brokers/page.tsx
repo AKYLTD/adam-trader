@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { TradingModeToggle } from '@/components/TradingMode';
 
 interface Broker {
   id: string;
@@ -93,6 +94,9 @@ export default function BrokersPage() {
 
   return (
     <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Trading Mode Toggle */}
+      <TradingModeToggle />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Brokers</h1>
