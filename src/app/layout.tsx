@@ -52,9 +52,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   { href: '/', label: 'Home' },
                   { href: '/charts', label: 'Charts' },
                   { href: '/positions', label: 'Portfolio' },
+                  { href: '/performance', label: 'Performance' },
                   { href: '/brokers', label: 'Brokers' },
                   { href: '/learn', label: 'Learn' },
-                  { href: '/settings', label: 'Settings' },
                 ].map(item => (
                   <a
                     key={item.href}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TradingModeToggle } from '@/components/TradingMode';
 
 interface Account {
   cash: number;
@@ -33,6 +34,11 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Trading Mode Toggle */}
+      <div className="flex justify-center">
+        <TradingModeToggle />
+      </div>
+
       {/* Portfolio */}
       <div className="card">
         <p className="text-[#8e8e93] text-xs font-medium mb-1">Portfolio</p>
@@ -132,14 +138,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Paper Trading */}
-      <div className="card bg-[#ff9500]/10 border border-[#ff9500]/20 flex items-center gap-3">
-        <span className="text-xl">📄</span>
-        <div className="flex-1">
-          <p className="font-medium text-[#ff9500]">Paper Trading</p>
-          <p className="text-xs text-[#8e8e93]">Practice mode • No real money</p>
-        </div>
-      </div>
     </div>
   );
 }
