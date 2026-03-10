@@ -122,7 +122,7 @@ const CATEGORIES = [
 export default function ChartsPage() {
   const [symbol, setSymbol] = useState('AAPL');
   const [symbolName, setSymbolName] = useState('Apple');
-  const [interval, setInterval] = useState('D');
+  const [interval, setInterval] = useState('D'); // Default daily for 5-day view
   const [category, setCategory] = useState('stocks-us');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -244,7 +244,7 @@ export default function ChartsPage() {
       <div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden">
         <iframe
           key={`${symbol}-${interval}`}
-          src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${symbol}&interval=${interval}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies%2CVolume%40tv-basicstudies&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`}
+          src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${symbol}&interval=${interval}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies%2CVolume%40tv-basicstudies&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&range=5D&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`}
           style={{ width: '100%', height: '650px' }}
           frameBorder="0"
           allowFullScreen

@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Activity, DollarSign, Target, Shield, Brain, Clock, AlertTriangle, CheckCircle, Play, Pause, Settings } from 'lucide-react';
+import { TrendingUp, TrendingDown, Activity, DollarSign, Target, Shield, Brain, Clock, AlertTriangle, CheckCircle, Play, Pause, Settings, Info } from 'lucide-react';
+import InfoTooltip from '@/components/InfoTooltip';
 
 interface Position {
   symbol: string;
@@ -110,7 +111,10 @@ export default function TradingDashboard() {
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-slate-400">Balance</span>
+                <span className="text-slate-400">
+                  Balance
+                  <InfoTooltip term="Balance" definition="Your total account value in cash, not including any open positions." />
+                </span>
                 <span className="text-white font-mono">£{account.balance.toLocaleString()}</span>
               </div>
               <div className="flex justify-between">
@@ -120,7 +124,10 @@ export default function TradingDashboard() {
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-slate-400">Win Rate</span>
+                <span className="text-slate-400">
+                  Win Rate
+                  <InfoTooltip term="Win Rate" definition="The percentage of your trades that are profitable. A 45% win rate can still be profitable with good risk/reward." />
+                </span>
                 <span className="text-white">{account.winRate}%</span>
               </div>
               <div className="flex justify-between">
@@ -168,6 +175,7 @@ export default function TradingDashboard() {
               <div>
                 <label className="text-sm text-slate-400 block mb-2">
                   Risk per Trade: {riskPerTrade}%
+                  <InfoTooltip term="Risk per Trade" definition="The maximum percentage of your account you're willing to lose on a single trade. Professional traders risk 1-2% per trade." example="With $10,000 and 1% risk, max loss is $100 per trade." />
                 </label>
                 <input
                   type="range"
@@ -185,6 +193,7 @@ export default function TradingDashboard() {
               <div>
                 <label className="text-sm text-slate-400 block mb-2">
                   Max Daily Risk: {maxDailyRisk}%
+                  <InfoTooltip term="Max Daily Risk" definition="Stop trading for the day after losing this percentage. Prevents emotional revenge trading after losses." example="With 5% daily max, stop trading after losing $500 on a $10,000 account." />
                 </label>
                 <input
                   type="range"
