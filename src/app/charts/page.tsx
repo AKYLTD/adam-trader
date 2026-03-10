@@ -1,279 +1,327 @@
 'use client';
 
-import { useState } from 'react';
-import { ArrowLeft, Search, TrendingUp, Globe, Coins, Fuel, Crown, DollarSign } from 'lucide-react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 
-const CATEGORIES = [
-  {
-    id: 'stocks-us',
-    name: 'US Stocks',
-    icon: <TrendingUp className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'AAPL', name: 'Apple' },
-      { symbol: 'MSFT', name: 'Microsoft' },
-      { symbol: 'GOOGL', name: 'Google' },
-      { symbol: 'NVDA', name: 'NVIDIA' },
-      { symbol: 'TSLA', name: 'Tesla' },
-      { symbol: 'AMZN', name: 'Amazon' },
-      { symbol: 'META', name: 'Meta' },
-      { symbol: 'JPM', name: 'JP Morgan' },
-    ],
-  },
-  {
-    id: 'stocks-uk',
-    name: 'UK Stocks',
-    icon: <Globe className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'LSE:SHEL', name: 'Shell' },
-      { symbol: 'LSE:BP', name: 'BP' },
-      { symbol: 'LSE:HSBA', name: 'HSBC' },
-      { symbol: 'LSE:ULVR', name: 'Unilever' },
-      { symbol: 'LSE:AZN', name: 'AstraZeneca' },
-      { symbol: 'LSE:VOD', name: 'Vodafone' },
-      { symbol: 'LSE:BARC', name: 'Barclays' },
-      { symbol: 'LSE:LLOY', name: 'Lloyds' },
-    ],
-  },
-  {
-    id: 'stocks-eu',
-    name: 'EU Stocks',
-    icon: <Globe className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'FWB:SAP', name: 'SAP (Germany)' },
-      { symbol: 'FWB:SIE', name: 'Siemens' },
-      { symbol: 'EURONEXT:MC', name: 'LVMH (France)' },
-      { symbol: 'EURONEXT:OR', name: "L'Oreal" },
-      { symbol: 'MIL:ENI', name: 'ENI (Italy)' },
-      { symbol: 'BME:SAN', name: 'Santander (Spain)' },
-    ],
-  },
-  {
-    id: 'indices',
-    name: 'Indices',
-    icon: <TrendingUp className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'SPY', name: 'S&P 500 ETF' },
-      { symbol: 'QQQ', name: 'Nasdaq 100 ETF' },
-      { symbol: 'DIA', name: 'Dow Jones ETF' },
-      { symbol: 'TVC:UKX', name: 'FTSE 100' },
-      { symbol: 'TVC:DAX', name: 'DAX (Germany)' },
-      { symbol: 'TVC:CAC40', name: 'CAC 40 (France)' },
-      { symbol: 'TVC:NI225', name: 'Nikkei 225 (Japan)' },
-      { symbol: 'SSE:000001', name: 'Shanghai Composite' },
-    ],
-  },
-  {
-    id: 'crypto',
-    name: 'Crypto',
-    icon: <Coins className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'BINANCE:BTCUSDT', name: 'Bitcoin' },
-      { symbol: 'BINANCE:ETHUSDT', name: 'Ethereum' },
-      { symbol: 'BINANCE:SOLUSDT', name: 'Solana' },
-      { symbol: 'BINANCE:BNBUSDT', name: 'BNB' },
-      { symbol: 'BINANCE:XRPUSDT', name: 'Ripple' },
-      { symbol: 'BINANCE:ADAUSDT', name: 'Cardano' },
-      { symbol: 'BINANCE:DOGEUSDT', name: 'Dogecoin' },
-      { symbol: 'BINANCE:DOTUSDT', name: 'Polkadot' },
-    ],
-  },
-  {
-    id: 'commodities',
-    name: 'Commodities',
-    icon: <Fuel className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'TVC:USOIL', name: 'Crude Oil WTI' },
-      { symbol: 'TVC:UKOIL', name: 'Brent Oil' },
-      { symbol: 'COMEX:NG1!', name: 'Natural Gas' },
-      { symbol: 'CBOT:ZC1!', name: 'Corn' },
-      { symbol: 'CBOT:ZW1!', name: 'Wheat' },
-      { symbol: 'CBOT:ZS1!', name: 'Soybeans' },
-    ],
-  },
-  {
-    id: 'metals',
-    name: 'Precious Metals',
-    icon: <Crown className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'TVC:GOLD', name: 'Gold' },
-      { symbol: 'TVC:SILVER', name: 'Silver' },
-      { symbol: 'TVC:PLATINUM', name: 'Platinum' },
-      { symbol: 'TVC:PALLADIUM', name: 'Palladium' },
-      { symbol: 'COMEX:HG1!', name: 'Copper' },
-    ],
-  },
-  {
-    id: 'forex',
-    name: 'Forex',
-    icon: <DollarSign className="w-4 h-4" />,
-    symbols: [
-      { symbol: 'FX:EURUSD', name: 'EUR/USD' },
-      { symbol: 'FX:GBPUSD', name: 'GBP/USD' },
-      { symbol: 'FX:USDJPY', name: 'USD/JPY' },
-      { symbol: 'FX:USDCHF', name: 'USD/CHF' },
-      { symbol: 'FX:AUDUSD', name: 'AUD/USD' },
-      { symbol: 'FX:USDCAD', name: 'USD/CAD' },
-      { symbol: 'FX:EURGBP', name: 'EUR/GBP' },
-      { symbol: 'FX:GBPJPY', name: 'GBP/JPY' },
-    ],
-  },
+interface Asset {
+  symbol: string;
+  name: string;
+  type: 'stock' | 'crypto' | 'index' | 'forex' | 'commodity';
+}
+
+const DEFAULT_ASSETS: Asset[] = [
+  { symbol: 'AAPL', name: 'Apple', type: 'stock' },
+  { symbol: 'MSFT', name: 'Microsoft', type: 'stock' },
+  { symbol: 'GOOGL', name: 'Alphabet', type: 'stock' },
+  { symbol: 'NVDA', name: 'NVIDIA', type: 'stock' },
+  { symbol: 'TSLA', name: 'Tesla', type: 'stock' },
 ];
 
-export default function ChartsPage() {
-  const [symbol, setSymbol] = useState('AAPL');
-  const [symbolName, setSymbolName] = useState('Apple');
-  const [interval, setInterval] = useState('D'); // Default daily for 5-day view
-  const [category, setCategory] = useState('stocks-us');
-  const [searchQuery, setSearchQuery] = useState('');
+const BROWSE_ASSETS: Asset[] = [
+  // US Stocks
+  { symbol: 'AAPL', name: 'Apple', type: 'stock' },
+  { symbol: 'MSFT', name: 'Microsoft', type: 'stock' },
+  { symbol: 'GOOGL', name: 'Alphabet', type: 'stock' },
+  { symbol: 'AMZN', name: 'Amazon', type: 'stock' },
+  { symbol: 'NVDA', name: 'NVIDIA', type: 'stock' },
+  { symbol: 'META', name: 'Meta', type: 'stock' },
+  { symbol: 'TSLA', name: 'Tesla', type: 'stock' },
+  { symbol: 'JPM', name: 'JPMorgan', type: 'stock' },
+  { symbol: 'V', name: 'Visa', type: 'stock' },
+  { symbol: 'WMT', name: 'Walmart', type: 'stock' },
+  // Crypto
+  { symbol: 'BTCUSD', name: 'Bitcoin', type: 'crypto' },
+  { symbol: 'ETHUSD', name: 'Ethereum', type: 'crypto' },
+  { symbol: 'SOLUSD', name: 'Solana', type: 'crypto' },
+  { symbol: 'BNBUSD', name: 'BNB', type: 'crypto' },
+  { symbol: 'XRPUSD', name: 'XRP', type: 'crypto' },
+  // Indices
+  { symbol: 'SPY', name: 'S&P 500', type: 'index' },
+  { symbol: 'QQQ', name: 'Nasdaq 100', type: 'index' },
+  { symbol: 'DIA', name: 'Dow Jones', type: 'index' },
+  { symbol: 'IWM', name: 'Russell 2000', type: 'index' },
+  // Forex
+  { symbol: 'EURUSD', name: 'EUR/USD', type: 'forex' },
+  { symbol: 'GBPUSD', name: 'GBP/USD', type: 'forex' },
+  { symbol: 'USDJPY', name: 'USD/JPY', type: 'forex' },
+  // Commodities
+  { symbol: 'GC1!', name: 'Gold', type: 'commodity' },
+  { symbol: 'CL1!', name: 'Crude Oil', type: 'commodity' },
+  { symbol: 'SI1!', name: 'Silver', type: 'commodity' },
+];
 
-  const selectSymbol = (sym: string, name: string) => {
-    setSymbol(sym);
-    setSymbolName(name);
-    setSearchQuery('');
+const TYPE_COLORS = {
+  stock: '#007aff',
+  crypto: '#ff9500',
+  index: '#5856d6',
+  forex: '#00d632',
+  commodity: '#ff3b30',
+};
+
+const TYPE_LABELS = {
+  stock: 'Stocks',
+  crypto: 'Crypto',
+  index: 'Indices',
+  forex: 'Forex',
+  commodity: 'Commodities',
+};
+
+function ChartsContent() {
+  const searchParams = useSearchParams();
+  const [watchlist, setWatchlist] = useState<Asset[]>(DEFAULT_ASSETS);
+  const [selectedSymbol, setSelectedSymbol] = useState(searchParams.get('symbol') || 'AAPL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showSearch, setShowSearch] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+
+  const filteredAssets = BROWSE_ASSETS.filter(asset => {
+    const matchesSearch = asset.symbol.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         asset.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = !activeFilter || asset.type === activeFilter;
+    const notInWatchlist = !watchlist.find(w => w.symbol === asset.symbol);
+    return matchesSearch && matchesFilter && notInWatchlist;
+  });
+
+  const addToWatchlist = (asset: Asset) => {
+    setWatchlist([...watchlist, asset]);
+    setShowAddModal(false);
+    setSelectedSymbol(asset.symbol);
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setSymbol(searchQuery.toUpperCase());
-      setSymbolName(searchQuery.toUpperCase());
+  const removeFromWatchlist = (symbol: string) => {
+    setWatchlist(watchlist.filter(a => a.symbol !== symbol));
+    if (selectedSymbol === symbol && watchlist.length > 1) {
+      setSelectedSymbol(watchlist[0].symbol);
     }
   };
 
-  const currentCategory = CATEGORIES.find(c => c.id === category);
+  const selectedAsset = watchlist.find(a => a.symbol === selectedSymbol) || 
+                        BROWSE_ASSETS.find(a => a.symbol === selectedSymbol);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <a href="/" className="p-2 hover:bg-white/10 rounded-lg transition">
-            <ArrowLeft className="w-5 h-5" />
-          </a>
-          <div>
-            <h1 className="text-2xl font-bold">Market Charts</h1>
-            <p className="text-slate-400 text-sm">Stocks, Crypto, Commodities, Forex & more</p>
-          </div>
+        <h1 className="text-xl font-bold">Charts</h1>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowSearch(!showSearch)}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#1a1a1a] active:scale-95 transition-transform"
+          >
+            <svg className="w-5 h-5 text-[#8e8e93]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </button>
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#00d632] active:scale-95 transition-transform"
+          >
+            <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
-        
-        {/* Search Bar */}
-        <form onSubmit={handleSearch} className="flex items-center gap-2">
+      </div>
+
+      {/* Search Bar */}
+      {showSearch && (
+        <div className="animate-slide-down">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#636366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
             <input
               type="text"
+              placeholder="Search symbols..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search symbol (e.g., AAPL, BTC)"
-              className="bg-slate-800 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-white w-64 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-[#1a1a1a] rounded-xl py-3 pl-12 pr-4 text-white placeholder-[#636366] focus:outline-none focus:ring-2 focus:ring-[#00d632]/50"
+              autoFocus
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full bg-[#636366]"
+              >
+                <svg className="w-3 h-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
           </div>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg transition"
-          >
-            Go
-          </button>
-        </form>
-      </div>
-
-      {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2 bg-slate-800/50 rounded-xl p-2">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setCategory(cat.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition ${
-              category === cat.id
-                ? 'bg-emerald-600 text-white'
-                : 'text-slate-400 hover:text-white hover:bg-white/10'
-            }`}
-          >
-            {cat.icon}
-            {cat.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Symbol Pills */}
-      <div className="flex flex-wrap gap-2">
-        {currentCategory?.symbols.map(s => (
-          <button
-            key={s.symbol}
-            onClick={() => selectSymbol(s.symbol, s.name)}
-            className={`px-3 py-1 rounded-full text-sm transition ${
-              symbol === s.symbol
-                ? 'bg-emerald-500/30 text-emerald-400 border border-emerald-500/50'
-                : 'bg-slate-800 text-slate-400 hover:text-white border border-white/10'
-            }`}
-          >
-            {s.name}
-          </button>
-        ))}
-      </div>
-
-      {/* Current Symbol & Interval */}
-      <div className="flex items-center justify-between bg-slate-800/50 rounded-xl p-4">
-        <div>
-          <span className="text-2xl font-bold">{symbol}</span>
-          <span className="text-slate-400 ml-2">{symbolName}</span>
         </div>
-        <div className="flex gap-1 bg-slate-900 rounded-lg p-1">
-          {[
-            { v: '1', l: '1m' },
-            { v: '5', l: '5m' },
-            { v: '15', l: '15m' },
-            { v: '60', l: '1H' },
-            { v: 'D', l: '1D' },
-            { v: 'W', l: '1W' },
-            { v: 'M', l: '1M' },
-          ].map(i => (
-            <button
-              key={i.v}
-              onClick={() => setInterval(i.v)}
-              className={`px-3 py-1 rounded text-sm transition ${
-                interval === i.v ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'
-              }`}
+      )}
+
+      {/* Watchlist Chips */}
+      <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+        {watchlist.map((asset, i) => (
+          <button
+            key={asset.symbol}
+            onClick={() => setSelectedSymbol(asset.symbol)}
+            className={`flex-shrink-0 px-4 py-2 rounded-full font-medium text-sm transition-all active:scale-95 ${
+              selectedSymbol === asset.symbol
+                ? 'bg-white text-black'
+                : 'bg-[#1a1a1a] text-white'
+            }`}
+            style={{ animationDelay: `${i * 50}ms` }}
+          >
+            {asset.symbol}
+          </button>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="card !p-0 overflow-hidden">
+        <div className="p-4 border-b border-[#262626] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div 
+              className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+              style={{ backgroundColor: TYPE_COLORS[selectedAsset?.type || 'stock'] + '20', color: TYPE_COLORS[selectedAsset?.type || 'stock'] }}
             >
-              {i.l}
-            </button>
-          ))}
+              {selectedSymbol.slice(0, 2)}
+            </div>
+            <div>
+              <p className="font-semibold">{selectedSymbol}</p>
+              <p className="text-xs text-[#8e8e93]">{selectedAsset?.name}</p>
+            </div>
+          </div>
+          <span 
+            className="text-xs px-2 py-1 rounded-full font-medium"
+            style={{ backgroundColor: TYPE_COLORS[selectedAsset?.type || 'stock'] + '20', color: TYPE_COLORS[selectedAsset?.type || 'stock'] }}
+          >
+            {TYPE_LABELS[selectedAsset?.type || 'stock']}
+          </span>
+        </div>
+        <div className="aspect-[4/3] md:aspect-[16/9]">
+          <iframe
+            key={selectedSymbol}
+            src={`https://s.tradingview.com/widgetembed/?frameElementId=tv_widget&symbol=${selectedSymbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=000000&studies=[]&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=0&allow_symbol_change=0&hide_top_toolbar=0&hide_legend=0&backgroundColor=000000`}
+            className="w-full h-full border-0"
+            loading="lazy"
+          />
         </div>
       </div>
 
-      {/* TradingView Chart */}
-      <div className="bg-slate-800/50 border border-white/10 rounded-xl overflow-hidden">
-        <iframe
-          key={`${symbol}-${interval}`}
-          src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${symbol}&interval=${interval}&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=1e293b&studies=RSI%40tv-basicstudies%2CMACD%40tv-basicstudies%2CVolume%40tv-basicstudies&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&range=5D&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D&disabled_features=%5B%5D&locale=en`}
-          style={{ width: '100%', height: '650px' }}
-          frameBorder="0"
-          allowFullScreen
-        />
+      {/* Quick Actions */}
+      <div className="grid grid-cols-2 gap-3">
+        <button className="btn btn-primary">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Buy
+        </button>
+        <button className="btn btn-secondary border border-[#ff3b30] text-[#ff3b30]">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+          </svg>
+          Sell
+        </button>
       </div>
 
-      {/* Market Info */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-        <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-          <h3 className="text-slate-400 mb-2">🇺🇸 US Markets</h3>
-          <p className="text-white">9:30 AM - 4:00 PM ET</p>
-          <p className="text-xs text-slate-500 mt-1">Pre-market: 4:00 AM</p>
+      {/* Add Asset Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end md:items-center justify-center animate-fade-in">
+          <div className="bg-[#1a1a1a] w-full md:w-[480px] md:rounded-2xl rounded-t-2xl max-h-[85vh] flex flex-col animate-slide-up">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#262626]">
+              <h2 className="text-lg font-semibold">Add to Watchlist</h2>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#262626] active:scale-95 transition-transform"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="p-4 border-b border-[#262626]">
+              <div className="relative">
+                <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[#636366]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search assets..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="w-full bg-[#0d0d0d] rounded-xl py-3 pl-12 pr-4 text-white placeholder-[#636366] focus:outline-none"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            {/* Filter Chips */}
+            <div className="flex gap-2 p-4 overflow-x-auto">
+              <button
+                onClick={() => setActiveFilter(null)}
+                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  !activeFilter ? 'bg-white text-black' : 'bg-[#262626] text-white'
+                }`}
+              >
+                All
+              </button>
+              {Object.entries(TYPE_LABELS).map(([key, label]) => (
+                <button
+                  key={key}
+                  onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+                  className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                    activeFilter === key ? 'text-black' : 'text-white'
+                  }`}
+                  style={{ 
+                    backgroundColor: activeFilter === key ? TYPE_COLORS[key as keyof typeof TYPE_COLORS] : '#262626'
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Asset List */}
+            <div className="flex-1 overflow-y-auto p-4 pt-0">
+              {filteredAssets.length === 0 ? (
+                <div className="text-center py-8 text-[#8e8e93]">
+                  No assets found
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredAssets.map(asset => (
+                    <button
+                      key={asset.symbol}
+                      onClick={() => addToWatchlist(asset)}
+                      className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#262626] active:bg-[#333] transition-colors"
+                    >
+                      <div 
+                        className="w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm"
+                        style={{ backgroundColor: TYPE_COLORS[asset.type] + '20', color: TYPE_COLORS[asset.type] }}
+                      >
+                        {asset.symbol.slice(0, 2)}
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="font-medium">{asset.symbol}</p>
+                        <p className="text-xs text-[#8e8e93]">{asset.name}</p>
+                      </div>
+                      <svg className="w-5 h-5 text-[#00d632]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-          <h3 className="text-slate-400 mb-2">🇬🇧 UK Markets</h3>
-          <p className="text-white">8:00 AM - 4:30 PM GMT</p>
-          <p className="text-xs text-slate-500 mt-1">LSE trading hours</p>
-        </div>
-        <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-          <h3 className="text-slate-400 mb-2">🪙 Crypto</h3>
-          <p className="text-white">24/7</p>
-          <p className="text-xs text-slate-500 mt-1">Never closes</p>
-        </div>
-        <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
-          <h3 className="text-slate-400 mb-2">💱 Forex</h3>
-          <p className="text-white">24/5</p>
-          <p className="text-xs text-slate-500 mt-1">Sun 5PM - Fri 5PM ET</p>
-        </div>
-      </div>
+      )}
     </div>
+  );
+}
+
+export default function ChartsPage() {
+  return (
+    <Suspense fallback={<div className="animate-pulse p-4"><div className="skeleton h-10 w-32 mb-4" /><div className="skeleton h-64 w-full" /></div>}>
+      <ChartsContent />
+    </Suspense>
   );
 }

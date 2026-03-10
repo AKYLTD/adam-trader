@@ -1,365 +1,222 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, ExternalLink, Plus, Trash2, RefreshCw, Globe, Coins, DollarSign, BarChart3 } from 'lucide-react';
+import { useState } from 'react';
 
 interface Broker {
   id: string;
   name: string;
-  description: string;
   icon: string;
   markets: string[];
-  features: string[];
-  signupUrl: string;
-  docsUrl: string;
   connected: boolean;
-  status?: 'active' | 'paper' | 'pending' | 'error';
+  status?: 'live' | 'paper';
   balance?: number;
-  currency?: string;
+  url: string;
 }
 
-const AVAILABLE_BROKERS: Broker[] = [
+const BROKERS: Broker[] = [
   {
     id: 'alpaca',
     name: 'Alpaca',
-    description: 'Commission-free US stock & crypto trading API',
     icon: '🦙',
     markets: ['US Stocks', 'Crypto'],
-    features: ['Paper Trading', 'Commission Free', 'REST & WebSocket API'],
-    signupUrl: 'https://alpaca.markets',
-    docsUrl: 'https://docs.alpaca.markets',
     connected: true,
     status: 'paper',
     balance: 100000,
-    currency: 'USD',
+    url: 'https://alpaca.markets',
   },
   {
     id: 'ibkr',
     name: 'Interactive Brokers',
-    description: 'Professional multi-asset global trading',
     icon: '🏦',
-    markets: ['US Stocks', 'UK Stocks', 'EU Stocks', 'Forex', 'Options', 'Futures', 'Commodities'],
-    features: ['Global Markets', 'Low Fees', 'Professional Tools', 'Paper Trading'],
-    signupUrl: 'https://www.interactivebrokers.com',
-    docsUrl: 'https://www.interactivebrokers.com/en/trading/ib-api.php',
+    markets: ['Global Stocks', 'Forex', 'Options', 'Futures'],
     connected: false,
+    url: 'https://interactivebrokers.com',
   },
   {
     id: 'trading212',
     name: 'Trading 212',
-    description: 'UK-friendly commission-free trading',
     icon: '📊',
-    markets: ['US Stocks', 'UK Stocks', 'EU Stocks', 'ETFs'],
-    features: ['Commission Free', 'Fractional Shares', 'UK Regulated', 'ISA Available'],
-    signupUrl: 'https://www.trading212.com',
-    docsUrl: 'https://t212public-api-docs.redoc.ly',
+    markets: ['UK/EU Stocks', 'ETFs'],
     connected: false,
+    url: 'https://trading212.com',
   },
   {
     id: 'binance',
     name: 'Binance',
-    description: 'World\'s largest crypto exchange',
     icon: '🔶',
-    markets: ['Crypto', 'Crypto Futures'],
-    features: ['500+ Coins', 'Low Fees', 'Spot & Futures', 'Staking'],
-    signupUrl: 'https://www.binance.com',
-    docsUrl: 'https://binance-docs.github.io/apidocs',
+    markets: ['Crypto', 'Futures'],
     connected: false,
+    url: 'https://binance.com',
   },
   {
     id: 'coinbase',
     name: 'Coinbase',
-    description: 'US-regulated crypto exchange',
     icon: '🪙',
     markets: ['Crypto'],
-    features: ['US Regulated', 'Easy to Use', 'Institutional Grade'],
-    signupUrl: 'https://www.coinbase.com',
-    docsUrl: 'https://docs.cloud.coinbase.com',
     connected: false,
+    url: 'https://coinbase.com',
   },
   {
     id: 'oanda',
     name: 'OANDA',
-    description: 'Professional forex trading',
     icon: '💱',
     markets: ['Forex', 'CFDs'],
-    features: ['Tight Spreads', 'No Minimum Deposit', 'Practice Account'],
-    signupUrl: 'https://www.oanda.com',
-    docsUrl: 'https://developer.oanda.com',
     connected: false,
-  },
-  {
-    id: 'ig',
-    name: 'IG',
-    description: 'UK-based CFD & spread betting',
-    icon: '🇬🇧',
-    markets: ['Forex', 'Indices', 'Commodities', 'Stocks CFD', 'Crypto'],
-    features: ['UK Regulated', 'Spread Betting (Tax Free)', '17,000+ Markets'],
-    signupUrl: 'https://www.ig.com',
-    docsUrl: 'https://labs.ig.com/rest-trading-api-reference',
-    connected: false,
+    url: 'https://oanda.com',
   },
 ];
 
 export default function BrokersPage() {
-  const [brokers, setBrokers] = useState<Broker[]>(AVAILABLE_BROKERS);
-  const [showConnectModal, setShowConnectModal] = useState<string | null>(null);
+  const [brokers, setBrokers] = useState(BROKERS);
+  const [showModal, setShowModal] = useState<string | null>(null);
   const [apiKey, setApiKey] = useState('');
   const [secretKey, setSecretKey] = useState('');
   const [connecting, setConnecting] = useState(false);
 
-  const connectedBrokers = brokers.filter(b => b.connected);
-  const availableBrokers = brokers.filter(b => !b.connected);
+  const connected = brokers.filter(b => b.connected);
+  const available = brokers.filter(b => !b.connected);
 
-  const handleConnect = async (brokerId: string) => {
+  const handleConnect = async () => {
+    if (!apiKey || !secretKey) return;
     setConnecting(true);
-    // In real implementation, this would validate and save credentials
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
+    await new Promise(r => setTimeout(r, 1500));
     setBrokers(brokers.map(b => 
-      b.id === brokerId 
-        ? { ...b, connected: true, status: 'paper', balance: 10000, currency: 'USD' }
-        : b
+      b.id === showModal ? { ...b, connected: true, status: 'paper', balance: 10000 } : b
     ));
-    setShowConnectModal(null);
+    setShowModal(null);
     setApiKey('');
     setSecretKey('');
     setConnecting(false);
   };
 
-  const handleDisconnect = (brokerId: string) => {
-    if (confirm('Disconnect this broker?')) {
-      setBrokers(brokers.map(b => 
-        b.id === brokerId 
-          ? { ...b, connected: false, status: undefined, balance: undefined }
-          : b
-      ));
-    }
-  };
-
-  const selectedBroker = brokers.find(b => b.id === showConnectModal);
+  const selectedBroker = brokers.find(b => b.id === showModal);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <a href="/" className="p-2 hover:bg-white/10 rounded-lg transition">
-          <ArrowLeft className="w-5 h-5" />
-        </a>
-        <div>
-          <h1 className="text-2xl font-bold">Broker Connections</h1>
-          <p className="text-slate-400 text-sm">Manage your trading accounts across multiple brokers</p>
-        </div>
+    <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Brokers</h1>
+        <span className="text-xs px-2 py-1 rounded-full bg-[#00d632]/15 text-[#00d632] font-medium">
+          {connected.length} connected
+        </span>
       </div>
 
-      {/* Connected Brokers */}
-      <div>
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Check className="w-5 h-5 text-green-400" />
-          Connected ({connectedBrokers.length})
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {connectedBrokers.map(broker => (
-            <div
-              key={broker.id}
-              className="bg-slate-800/50 border border-green-500/30 rounded-xl p-5"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <span className="text-3xl">{broker.icon}</span>
-                  <div>
-                    <h3 className="font-semibold text-white">{broker.name}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded ${
-                      broker.status === 'active' ? 'bg-green-500/20 text-green-400' :
-                      broker.status === 'paper' ? 'bg-yellow-500/20 text-yellow-400' :
-                      'bg-slate-500/20 text-slate-400'
-                    }`}>
-                      {broker.status === 'paper' ? '📄 Paper' : '💰 Live'}
-                    </span>
-                  </div>
+      {/* Connected */}
+      {connected.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs text-[#636366] font-medium px-1">CONNECTED</p>
+          {connected.map(broker => (
+            <div key={broker.id} className="card flex items-center gap-3">
+              <span className="text-3xl">{broker.icon}</span>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold">{broker.name}</p>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${broker.status === 'paper' ? 'bg-[#ff9500]/15 text-[#ff9500]' : 'bg-[#00d632]/15 text-[#00d632]'}`}>
+                    {broker.status === 'paper' ? 'Paper' : 'Live'}
+                  </span>
                 </div>
-                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+                <p className="text-xs text-[#636366]">{broker.markets.join(' • ')}</p>
               </div>
-              
-              {broker.balance !== undefined && (
-                <div className="bg-slate-900/50 rounded-lg p-3 mb-3">
-                  <p className="text-xs text-slate-400">Balance</p>
-                  <p className="text-xl font-bold text-white">
-                    {broker.currency === 'USD' ? '$' : '£'}{broker.balance.toLocaleString()}
-                  </p>
+              {broker.balance && (
+                <div className="text-right">
+                  <p className="font-semibold">${broker.balance.toLocaleString()}</p>
+                  <p className="text-xs text-[#636366]">Balance</p>
                 </div>
               )}
-
-              <div className="flex flex-wrap gap-1 mb-3">
-                {broker.markets.map(m => (
-                  <span key={m} className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-300">
-                    {m}
-                  </span>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <button className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm transition">
-                  Trade
-                </button>
-                <button
-                  onClick={() => handleDisconnect(broker.id)}
-                  className="px-3 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      {/* Available Brokers */}
-      <div>
-        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-          <Plus className="w-5 h-5 text-slate-400" />
-          Available Brokers ({availableBrokers.length})
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {availableBrokers.map(broker => (
-            <div
-              key={broker.id}
-              className="bg-slate-800/50 border border-white/10 rounded-xl p-5 hover:border-white/20 transition"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">{broker.icon}</span>
-                <div>
-                  <h3 className="font-semibold text-white">{broker.name}</h3>
-                  <p className="text-xs text-slate-400">{broker.description}</p>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap gap-1 mb-3">
-                {broker.markets.map(m => (
-                  <span key={m} className="text-xs bg-slate-700 px-2 py-0.5 rounded text-slate-300">
-                    {m}
-                  </span>
-                ))}
-              </div>
-
-              <ul className="text-xs text-slate-400 space-y-1 mb-4">
-                {broker.features.slice(0, 3).map(f => (
-                  <li key={f}>✓ {f}</li>
-                ))}
-              </ul>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowConnectModal(broker.id)}
-                  className="flex-1 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 rounded-lg text-sm transition"
-                >
-                  Connect
-                </button>
-                <a
-                  href={broker.signupUrl}
-                  target="_blank"
-                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm transition"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
+      {/* Available */}
+      <div className="space-y-2">
+        <p className="text-xs text-[#636366] font-medium px-1">AVAILABLE</p>
+        {available.map(broker => (
+          <button
+            key={broker.id}
+            onClick={() => setShowModal(broker.id)}
+            className="card w-full flex items-center gap-3 text-left active:scale-[0.98] transition-transform"
+          >
+            <span className="text-3xl">{broker.icon}</span>
+            <div className="flex-1">
+              <p className="font-semibold">{broker.name}</p>
+              <p className="text-xs text-[#636366]">{broker.markets.join(' • ')}</p>
             </div>
-          ))}
-        </div>
+            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-[#262626]">
+              <svg className="w-4 h-4 text-[#00d632]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
+          </button>
+        ))}
       </div>
 
-      {/* Market Coverage */}
-      <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl p-6">
-        <h2 className="text-lg font-semibold text-white mb-4">🌍 Market Coverage</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="text-center">
-            <Globe className="w-8 h-8 mx-auto mb-2 text-blue-400" />
-            <p className="font-semibold">50+ Countries</p>
-            <p className="text-xs text-slate-400">Global markets</p>
-          </div>
-          <div className="text-center">
-            <Coins className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
-            <p className="font-semibold">500+ Crypto</p>
-            <p className="text-xs text-slate-400">Via Binance</p>
-          </div>
-          <div className="text-center">
-            <DollarSign className="w-8 h-8 mx-auto mb-2 text-green-400" />
-            <p className="font-semibold">100+ Forex</p>
-            <p className="text-xs text-slate-400">Via OANDA/IG</p>
-          </div>
-          <div className="text-center">
-            <BarChart3 className="w-8 h-8 mx-auto mb-2 text-purple-400" />
-            <p className="font-semibold">Commodities</p>
-            <p className="text-xs text-slate-400">Oil, Gold, Silver</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Connect Modal */}
-      {showConnectModal && selectedBroker && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-white/10 rounded-xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl">{selectedBroker.icon}</span>
-              <div>
-                <h3 className="text-lg font-semibold text-white">Connect {selectedBroker.name}</h3>
-                <p className="text-xs text-slate-400">Enter your API credentials</p>
+      {/* Modal */}
+      {showModal && selectedBroker && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-end md:items-center justify-center animate-fade-in">
+          <div className="bg-[#1a1a1a] w-full md:w-[400px] md:rounded-2xl rounded-t-2xl animate-slide-up">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-[#262626]">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{selectedBroker.icon}</span>
+                <p className="font-semibold">{selectedBroker.name}</p>
               </div>
+              <button
+                onClick={() => setShowModal(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-[#262626] active:scale-95 transition-transform"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
-            <div className="space-y-4">
+            {/* Form */}
+            <div className="p-4 space-y-4">
               <div>
-                <label className="text-sm text-slate-400 block mb-1">API Key</label>
+                <label className="text-xs text-[#636366] mb-2 block">API Key</label>
                 <input
                   type="text"
                   value={apiKey}
                   onChange={e => setApiKey(e.target.value)}
-                  placeholder="Enter your API key"
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  placeholder="Enter API key"
+                  className="w-full bg-[#0d0d0d] rounded-xl p-3 text-white placeholder-[#636366] focus:outline-none focus:ring-2 focus:ring-[#00d632]/50"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-400 block mb-1">Secret Key</label>
+                <label className="text-xs text-[#636366] mb-2 block">Secret Key</label>
                 <input
                   type="password"
                   value={secretKey}
                   onChange={e => setSecretKey(e.target.value)}
-                  placeholder="Enter your secret key"
-                  className="w-full bg-slate-900 border border-white/10 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  placeholder="Enter secret key"
+                  className="w-full bg-[#0d0d0d] rounded-xl p-3 text-white placeholder-[#636366] focus:outline-none focus:ring-2 focus:ring-[#00d632]/50"
                 />
               </div>
 
-              <div className="bg-slate-900/50 rounded-lg p-3 text-xs text-slate-400">
-                <p className="mb-2">📋 How to get API keys:</p>
-                <ol className="list-decimal list-inside space-y-1">
-                  <li>Sign up at <a href={selectedBroker.signupUrl} target="_blank" className="text-emerald-400">{selectedBroker.name}</a></li>
-                  <li>Go to API settings / Developer section</li>
-                  <li>Generate new API keys</li>
-                  <li>Copy and paste them here</li>
-                </ol>
-              </div>
+              <a
+                href={selectedBroker.url}
+                target="_blank"
+                className="flex items-center justify-center gap-2 text-sm text-[#007aff]"
+              >
+                Get API keys
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setShowConnectModal(null)}
-                  className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => handleConnect(selectedBroker.id)}
-                  disabled={!apiKey || !secretKey || connecting}
-                  className="flex-1 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 rounded-lg transition flex items-center justify-center gap-2"
-                >
-                  {connecting ? (
-                    <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Connecting...
-                    </>
-                  ) : (
-                    'Connect'
-                  )}
-                </button>
-              </div>
+              <button
+                onClick={handleConnect}
+                disabled={!apiKey || !secretKey || connecting}
+                className="btn btn-primary w-full disabled:opacity-50"
+              >
+                {connecting ? (
+                  <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : 'Connect'}
+              </button>
             </div>
           </div>
         </div>
