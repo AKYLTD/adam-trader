@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
+import { executeBuy, executeSell, getPrice } from '@/lib/tradingEngine';
 
 interface Asset {
   symbol: string;
@@ -75,6 +76,39 @@ function ChartsContent() {
   const [showTradeModal, setShowTradeModal] = useState<'buy' | 'sell' | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [orderType, setOrderType] = useState<'market' | 'limit'>('market');
+  const [tradeStatus, setTradeStatus] = useState<{success: boolean; message: string} | null>(null);
+  const [currentPrice, setCurrentPrice] = useState(178.50);
+
+  // Update price when symbol changes
+  useEffect(() => {
+    setCurrentPrice(getPrice(selectedSymbol));
+  }, [selectedSymbol]);
+
+  const handleTrade = () => {
+    const qty = Number(quantity);
+    if (qty <= 0) {
+      setTradeStatus({ success: false, message: 'Invalid quantity' });
+      return;
+    }
+
+    const result = showTradeModal === 'buy' 
+      ? executeBuy(selectedSymbol, qty, selectedAsset?.type || 'stock')
+      : executeSell(selectedSymbol, qty);
+
+    if (result.success) {
+      setTradeStatus({ 
+        success: true, 
+        message: `${showTradeModal === 'buy' ? 'Bought' : 'Sold'} ${qty} ${selectedSymbol} @ $${currentPrice.toFixed(2)}`
+      });
+      setTimeout(() => {
+        setShowTradeModal(null);
+        setTradeStatus(null);
+        setQuantity('1');
+      }, 1500);
+    } else {
+      setTradeStatus({ success: false, message: result.error || 'Trade failed' });
+    }
+  };
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -326,23 +360,34 @@ function ChartsContent() {
               <div className="bg-[#0d0d0d] rounded-xl p-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-[#636366]">Price</span>
-                  <span>~$178.50</span>
+                  <span>${currentPrice.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm mt-2">
                   <span className="text-[#636366]">Estimated Total</span>
-                  <span className="font-semibold">${(178.50 * Number(quantity || 0)).toFixed(2)}</span>
+                  <span className="font-semibold">${(currentPrice * Number(quantity || 0)).toFixed(2)}</span>
                 </div>
               </div>
 
+              {/* Status Message */}
+              {tradeStatus && (
+                <div className={`text-center py-3 rounded-xl text-sm font-medium ${
+                  tradeStatus.success ? 'bg-[#00d632]/15 text-[#00d632]' : 'bg-[#ff3b30]/15 text-[#ff3b30]'
+                }`}>
+                  {tradeStatus.success ? '✓' : '✗'} {tradeStatus.message}
+                </div>
+              )}
+
               {/* Submit */}
               <button
-                className={`btn w-full font-semibold ${
+                onClick={handleTrade}
+                disabled={!!tradeStatus?.success}
+                className={`btn w-full font-semibold disabled:opacity-50 ${
                   showTradeModal === 'buy' 
                     ? 'bg-[#00d632] text-black' 
                     : 'bg-[#ff3b30] text-white'
                 }`}
               >
-                {showTradeModal === 'buy' ? 'Buy' : 'Sell'} {quantity} {selectedSymbol}
+                {tradeStatus?.success ? '✓ Done' : `${showTradeModal === 'buy' ? 'Buy' : 'Sell'} ${quantity} ${selectedSymbol}`}
               </button>
             </div>
           </div>
