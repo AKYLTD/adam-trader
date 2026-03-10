@@ -10,168 +10,167 @@ interface Account {
   status: string;
 }
 
-export default function TradingDashboard() {
+const WATCHLIST = [
+  { symbol: 'AAPL', name: 'Apple Inc.', price: 178.50, change: 2.35, changePercent: 1.33 },
+  { symbol: 'MSFT', name: 'Microsoft Corp.', price: 420.15, change: -3.20, changePercent: -0.76 },
+  { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 875.30, change: 15.40, changePercent: 1.79 },
+  { symbol: 'TSLA', name: 'Tesla Inc.', price: 175.25, change: -5.10, changePercent: -2.83 },
+  { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 141.80, change: 0.95, changePercent: 0.67 },
+];
+
+export default function Dashboard() {
   const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);
   const [marketOpen, setMarketOpen] = useState(false);
 
   useEffect(() => {
-    // Fetch account
-    fetch('/api/alpaca/account')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setAccount(data.account);
-      })
-      .finally(() => setLoading(false));
-
-    // Check market status
-    fetch('/api/alpaca/clock')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success) setMarketOpen(data.clock.isOpen);
-      });
+    Promise.all([
+      fetch('/api/alpaca/account').then(r => r.json()),
+      fetch('/api/alpaca/clock').then(r => r.json()),
+    ]).then(([accountData, clockData]) => {
+      if (accountData.success) setAccount(accountData.account);
+      if (clockData.success) setMarketOpen(clockData.clock.isOpen);
+    }).finally(() => setLoading(false));
   }, []);
 
   const dailyChange = 0;
   const dailyChangePercent = 0;
 
   return (
-    <div className="space-y-4 animate-slide-up">
-      {/* Portfolio Value Card */}
-      <div className="t212-card">
-        <p className="text-[#9e9e9e] text-sm mb-1">Portfolio Value</p>
+    <div className="space-y-4 animate-slide-up safe-bottom">
+      {/* Portfolio Value */}
+      <section className="card">
+        <p className="text-secondary text-sm font-medium mb-2">Portfolio Value</p>
         {loading ? (
-          <div className="h-10 bg-[#2a2a2a] rounded animate-pulse w-40" />
+          <div className="skeleton h-10 w-40 mb-2" />
         ) : (
-          <>
-            <h1 className="text-4xl font-bold tracking-tight">
-              ${account?.portfolioValue?.toLocaleString() || '0'}
-            </h1>
-            <div className="flex items-center gap-2 mt-2">
-              <span className={`text-sm font-medium ${dailyChange >= 0 ? 'text-gain' : 'text-loss'}`}>
-                {dailyChange >= 0 ? '+' : ''}{dailyChange.toFixed(2)} ({dailyChangePercent.toFixed(2)}%)
-              </span>
-              <span className="text-[#9e9e9e] text-xs">Today</span>
-            </div>
-          </>
+          <h1 className="number-large">
+            ${account?.portfolioValue?.toLocaleString(undefined, { minimumFractionDigits: 2 }) || '0.00'}
+          </h1>
         )}
-      </div>
+        <div className="flex items-center gap-2 mt-1">
+          <span className={`badge ${dailyChange >= 0 ? 'badge-green' : 'badge-red'}`}>
+            {dailyChange >= 0 ? '+' : ''}{dailyChange.toFixed(2)} ({dailyChangePercent.toFixed(2)}%)
+          </span>
+          <span className="text-tertiary text-xs">Today</span>
+        </div>
+      </section>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="t212-card">
-          <p className="text-[#9e9e9e] text-xs mb-1">Cash</p>
-          <p className="text-xl font-semibold">${account?.cash?.toLocaleString() || '0'}</p>
+      <section className="grid grid-cols-2 gap-3">
+        <div className="card">
+          <p className="text-tertiary text-xs font-medium mb-1">Available Cash</p>
+          {loading ? (
+            <div className="skeleton h-7 w-24" />
+          ) : (
+            <p className="number-medium">${account?.cash?.toLocaleString() || '0'}</p>
+          )}
         </div>
-        <div className="t212-card">
-          <p className="text-[#9e9e9e] text-xs mb-1">Buying Power</p>
-          <p className="text-xl font-semibold">${account?.buyingPower?.toLocaleString() || '0'}</p>
+        <div className="card">
+          <p className="text-tertiary text-xs font-medium mb-1">Buying Power</p>
+          {loading ? (
+            <div className="skeleton h-7 w-24" />
+          ) : (
+            <p className="number-medium">${account?.buyingPower?.toLocaleString() || '0'}</p>
+          )}
         </div>
-      </div>
+      </section>
 
       {/* Market Status */}
-      <div className="t212-card flex items-center justify-between">
+      <section className="card flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-3 h-3 rounded-full ${marketOpen ? 'bg-[#00c853]' : 'bg-[#ff1744]'} animate-pulse`} />
+          <div className={`w-3 h-3 rounded-full ${marketOpen ? 'bg-[#00d632]' : 'bg-[#ff3b30]'} animate-pulse`} />
           <div>
-            <p className="font-medium">US Market</p>
-            <p className="text-[#9e9e9e] text-xs">{marketOpen ? 'Open' : 'Closed'}</p>
+            <p className="font-medium">US Markets</p>
+            <p className="text-tertiary text-xs">{marketOpen ? 'Open for trading' : 'Closed'}</p>
           </div>
         </div>
-        <span className="text-xs text-[#9e9e9e]">9:30 AM - 4:00 PM ET</span>
-      </div>
+        <span className="badge badge-blue">9:30 AM - 4:00 PM ET</span>
+      </section>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/charts" className="t212-card-interactive flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#2979ff]/20 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-[#2979ff]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <section className="grid grid-cols-2 gap-3">
+        <Link href="/charts" className="card-interactive flex items-center gap-4">
+          <div className="avatar avatar-md bg-blue text-white">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <p className="font-medium">Charts</p>
-            <p className="text-[#9e9e9e] text-xs">View markets</p>
+            <p className="font-semibold">Charts</p>
+            <p className="text-tertiary text-xs">View markets</p>
           </div>
         </Link>
-        <Link href="/positions" className="t212-card-interactive flex items-center gap-3">
-          <div className="w-10 h-10 bg-[#00c853]/20 rounded-xl flex items-center justify-center">
-            <svg className="w-5 h-5 text-[#00c853]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        <Link href="/positions" className="card-interactive flex items-center gap-4">
+          <div className="avatar avatar-md bg-gain text-black">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
           <div>
-            <p className="font-medium">Portfolio</p>
-            <p className="text-[#9e9e9e] text-xs">Your holdings</p>
+            <p className="font-semibold">Portfolio</p>
+            <p className="text-tertiary text-xs">Your holdings</p>
           </div>
         </Link>
-      </div>
+      </section>
 
       {/* Watchlist */}
-      <div className="t212-card">
+      <section className="card">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold">Watchlist</h2>
-          <Link href="/charts" className="text-[#2979ff] text-sm">See all</Link>
+          <h2 className="section-title !mb-0">Watchlist</h2>
+          <Link href="/charts" className="text-[#007aff] text-sm font-medium">See all</Link>
         </div>
-        <div className="space-y-3">
-          {[
-            { symbol: 'AAPL', name: 'Apple Inc', price: 178.50, change: 2.35, changePercent: 1.33 },
-            { symbol: 'MSFT', name: 'Microsoft', price: 420.15, change: -3.20, changePercent: -0.76 },
-            { symbol: 'NVDA', name: 'NVIDIA', price: 875.30, change: 15.40, changePercent: 1.79 },
-            { symbol: 'TSLA', name: 'Tesla', price: 175.25, change: -5.10, changePercent: -2.83 },
-          ].map(stock => (
-            <Link 
+        <div className="space-y-1">
+          {WATCHLIST.map(stock => (
+            <Link
               key={stock.symbol}
               href={`/charts?symbol=${stock.symbol}`}
-              className="flex items-center justify-between p-3 -mx-3 rounded-xl hover:bg-[#242424] transition"
+              className="list-item"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#2a2a2a] rounded-full flex items-center justify-center font-semibold text-sm">
-                  {stock.symbol[0]}
-                </div>
-                <div>
-                  <p className="font-medium">{stock.symbol}</p>
-                  <p className="text-[#9e9e9e] text-xs">{stock.name}</p>
-                </div>
+              <div className="avatar avatar-md bg-[#1c1c1c] text-white mr-3">
+                {stock.symbol.slice(0, 2)}
               </div>
-              <div className="text-right">
-                <p className="font-medium">${stock.price.toFixed(2)}</p>
-                <p className={`text-xs ${stock.change >= 0 ? 'text-gain' : 'text-loss'}`}>
-                  {stock.change >= 0 ? '+' : ''}{stock.change.toFixed(2)} ({stock.changePercent.toFixed(2)}%)
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold">{stock.symbol}</p>
+                <p className="text-tertiary text-sm truncate">{stock.name}</p>
+              </div>
+              <div className="text-right ml-3">
+                <p className="font-semibold">${stock.price.toFixed(2)}</p>
+                <p className={`text-sm ${stock.change >= 0 ? 'text-gain' : 'text-loss'}`}>
+                  {stock.change >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
                 </p>
               </div>
             </Link>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* AI Insights */}
-      <div className="t212-card border border-[#00c853]/30">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-8 h-8 bg-[#00c853] rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-sm">AI</span>
-          </div>
+      <section className="card border border-[#00d632]/30">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="avatar avatar-md bg-[#00d632] text-black font-bold">AI</div>
           <div>
-            <p className="font-medium">Adam's Insights</p>
-            <p className="text-[#9e9e9e] text-xs">AI-powered analysis</p>
+            <p className="font-semibold">Adam&apos;s Insights</p>
+            <p className="text-tertiary text-xs">AI-powered analysis</p>
           </div>
         </div>
-        <div className="bg-[#0d0d0d] rounded-xl p-3 text-sm text-[#9e9e9e]">
+        <div className="bg-[#0a0a0a] rounded-xl p-4 text-sm text-secondary space-y-2">
           <p>📊 Market analysis ready. US markets {marketOpen ? 'are open' : 'will open at 9:30 AM ET'}.</p>
-          <p className="mt-2">💡 Tip: Check the Learn section to improve your trading knowledge.</p>
+          <p>💡 Tip: Check the Learn section to improve your trading knowledge.</p>
         </div>
-      </div>
+      </section>
 
       {/* Paper Trading Notice */}
-      <div className="t212-card bg-[#ff9800]/10 border border-[#ff9800]/30">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">📄</span>
+      <section className="card bg-orange border border-[#ff9500]/30">
+        <div className="flex items-center gap-4">
+          <span className="text-3xl">📄</span>
           <div>
-            <p className="font-medium text-[#ff9800]">Paper Trading Mode</p>
-            <p className="text-sm text-[#9e9e9e]">No real money is being used. Practice freely!</p>
+            <p className="font-semibold text-[#ff9500]">Paper Trading Mode</p>
+            <p className="text-sm text-secondary">No real money is being used. Practice freely!</p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
