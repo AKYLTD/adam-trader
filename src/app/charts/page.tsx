@@ -275,7 +275,7 @@ function ChartsContent() {
       {/* Trade Modal */}
       {showTradeModal && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-end md:items-center justify-center animate-fade-in">
-          <div className="bg-[#1a1a1a] w-full md:w-[400px] md:rounded-2xl rounded-t-2xl animate-slide-up">
+          <div className="bg-[#1a1a1a] w-full md:w-[400px] md:rounded-2xl rounded-t-2xl animate-slide-up max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className={`p-4 border-b border-[#262626] ${showTradeModal === 'buy' ? 'bg-[#00d632]/10' : 'bg-[#ff3b30]/10'}`}>
               <div className="flex items-center justify-between">
@@ -377,18 +377,21 @@ function ChartsContent() {
                 </div>
               )}
 
-              {/* Submit */}
+              {/* Submit Button - BIG AND CLEAR */}
               <button
                 onClick={handleTrade}
                 disabled={!!tradeStatus?.success}
-                className={`btn w-full font-semibold disabled:opacity-50 ${
+                className={`w-full py-5 rounded-2xl text-xl font-bold disabled:opacity-50 active:scale-95 transition-transform ${
                   showTradeModal === 'buy' 
                     ? 'bg-[#00d632] text-black' 
                     : 'bg-[#ff3b30] text-white'
                 }`}
               >
-                {tradeStatus?.success ? '✓ Done' : `${showTradeModal === 'buy' ? 'Buy' : 'Sell'} ${quantity} ${selectedSymbol}`}
+                {tradeStatus?.success ? '✓ DONE' : `${showTradeModal === 'buy' ? '🛒 BUY' : '💸 SELL'} ${quantity} ${selectedSymbol}`}
               </button>
+              
+              {/* Extra padding for safe area */}
+              <div className="h-4" />
             </div>
           </div>
         </div>

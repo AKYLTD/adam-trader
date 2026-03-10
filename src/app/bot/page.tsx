@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
 import { executeBotCycle, type BotConfig } from '@/lib/tradingEngine';
 import { getPortfolio, type PaperTrade } from '@/lib/paperTrading';
+import { setBotStatus } from '@/components/BotIndicator';
 
 interface BotStrategy {
   id: string;
@@ -141,13 +142,22 @@ export default function BotPage() {
       setShowConfirm(true);
     } else {
       setBotEnabled(false);
+      setBotStatus(false, stats.trades);
     }
   };
 
   const confirmStart = () => {
     setBotEnabled(true);
+    setBotStatus(true, stats.trades);
     setShowConfirm(false);
   };
+
+  // Update global bot status when stats change
+  useEffect(() => {
+    if (botEnabled) {
+      setBotStatus(true, stats.trades);
+    }
+  }, [botEnabled, stats.trades]);
 
   return (
     <div className="space-y-4 animate-slide-up safe-bottom">

@@ -1,6 +1,7 @@
 import './globals.css';
 import { Inter } from 'next/font/google';
 import MobileNav from '@/components/MobileNav';
+import { BotIndicator } from '@/components/BotIndicator';
 import type { Metadata, Viewport } from 'next';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
 
           <MobileNav />
+          <BotIndicator />
         </div>
       </body>
     </html>
