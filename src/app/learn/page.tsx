@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, Search, BookOpen, Play, TrendingUp, BarChart2, Shield, DollarSign, Activity, Target } from 'lucide-react';
+import { ArrowLeft, Search, BookOpen, Play, TrendingUp, BarChart2, Shield, DollarSign, Activity, Target, X } from 'lucide-react';
 
 interface Term {
   term: string;
@@ -74,10 +74,17 @@ const DICTIONARY: Term[] = [
 
 const CATEGORIES = ['All', 'Basics', 'Orders', 'Technical', 'Risk', 'Styles', 'Market', 'Crypto'];
 
+// Extract YouTube video ID from URL
+const getYouTubeId = (url: string) => {
+  const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&]+)/);
+  return match ? match[1] : null;
+};
+
 export default function LearnPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [playingVideo, setPlayingVideo] = useState<string | null>(null);
 
   const filtered = DICTIONARY.filter(term => {
     const matchesSearch = term.term.toLowerCase().includes(search.toLowerCase()) ||
@@ -162,14 +169,34 @@ export default function LearnPage() {
                 )}
                 
                 {term.videoUrl && (
-                  <a
-                    href={term.videoUrl}
-                    target="_blank"
-                    className="inline-flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 transition"
-                  >
-                    <Play className="w-4 h-4" />
-                    Watch explanation video
-                  </a>
+                  <div className="mt-3">
+                    {playingVideo === term.term ? (
+                      <div className="relative">
+                        <button
+                          onClick={() => setPlayingVideo(null)}
+                          className="absolute -top-2 -right-2 z-10 bg-slate-700 rounded-full p-1 hover:bg-slate-600 transition"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                        <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${getYouTubeId(term.videoUrl)}?autoplay=1`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setPlayingVideo(term.term)}
+                        className="inline-flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-400 hover:bg-red-500/30 rounded-lg transition text-sm"
+                      >
+                        <Play className="w-4 h-4" />
+                        Watch explanation video
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}
