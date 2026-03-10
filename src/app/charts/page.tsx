@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
-import { executeBuy, executeSell, getPrice } from '@/lib/tradingEngine';
+import { executeBuy, executeSell, getPrice, updatePrice } from '@/lib/tradingEngine';
 
 interface Asset {
   symbol: string;
@@ -78,10 +78,33 @@ function ChartsContent() {
   const [showTradeModal, setShowTradeModal] = useState<'buy' | 'sell' | null>(null);
   const [quantity, setQuantity] = useState('1');
   const [tradeStatus, setTradeStatus] = useState<{success: boolean; message: string} | null>(null);
-  const [currentPrice, setCurrentPrice] = useState(178.50);
+  const [currentPrice, setCurrentPrice] = useState(0);
+  const [priceChange, setPriceChange] = useState(0);
+  const [priceLoading, setPriceLoading] = useState(true);
+
+  // Fetch real price from API
+  const fetchPrice = async (symbol: string) => {
+    setPriceLoading(true);
+    try {
+      const response = await fetch(`/api/prices?symbols=${symbol}`);
+      const data = await response.json();
+      if (data.prices && data.prices.length > 0) {
+        const priceData = data.prices[0];
+        setCurrentPrice(priceData.price);
+        setPriceChange(priceData.changePercent);
+        updatePrice(symbol, priceData.price);
+      }
+    } catch (error) {
+      console.error('Failed to fetch price:', error);
+    }
+    setPriceLoading(false);
+  };
 
   useEffect(() => {
-    setCurrentPrice(getPrice(selectedSymbol));
+    fetchPrice(selectedSymbol);
+    // Refresh price every 15 seconds
+    const interval = setInterval(() => fetchPrice(selectedSymbol), 15000);
+    return () => clearInterval(interval);
   }, [selectedSymbol]);
 
   const selectedAsset = ALL_ASSETS.find(a => a.symbol === selectedSymbol);
@@ -220,16 +243,19 @@ function ChartsContent() {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-bold text-lg">${currentPrice.toFixed(2)}</p>
-            <span 
-              className="text-xs px-2 py-1 rounded-full"
-              style={{ 
-                backgroundColor: TYPE_CONFIG[selectedAsset?.type || 'stock'].color + '30',
-                color: TYPE_CONFIG[selectedAsset?.type || 'stock'].color 
-              }}
-            >
-              {TYPE_CONFIG[selectedAsset?.type || 'stock'].label}
-            </span>
+            {priceLoading ? (
+              <div className="skeleton h-6 w-20 mb-1" />
+            ) : (
+              <>
+                <p className="font-bold text-lg">${currentPrice.toFixed(2)}</p>
+                <div className="flex items-center justify-end gap-1">
+                  <span className={`text-xs font-medium ${priceChange >= 0 ? 'text-[#00d632]' : 'text-[#ff3b30]'}`}>
+                    {priceChange >= 0 ? '▲' : '▼'} {Math.abs(priceChange).toFixed(2)}%
+                  </span>
+                  <span className="w-2 h-2 bg-[#00d632] rounded-full animate-pulse" title="Live" />
+                </div>
+              </>
+            )}
           </div>
         </div>
         <div className="aspect-[4/3] md:aspect-[16/9]">

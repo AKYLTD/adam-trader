@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
 import { MarketStatusCard, MarketStatusBar } from '@/components/MarketStatus';
 import { getPortfolio, type PaperPosition, type PaperTrade } from '@/lib/paperTrading';
-import { getPrice } from '@/lib/tradingEngine';
+import { updatePrice } from '@/lib/tradingEngine';
 
 export default function Dashboard() {
   const mode = useTradingMode();
@@ -14,18 +14,39 @@ export default function Dashboard() {
   const [recentTrades, setRecentTrades] = useState<PaperTrade[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Load portfolio data
-  const loadPortfolio = () => {
+  // Fetch live prices and update portfolio
+  const loadPortfolio = async () => {
     const portfolio = getPortfolio();
     
-    // Update prices
-    const updatedPositions = portfolio.positions.map(pos => ({
-      ...pos,
-      currentPrice: getPrice(pos.symbol),
-      pnl: (getPrice(pos.symbol) - pos.avgPrice) * pos.quantity,
-    }));
-
-    setPositions(updatedPositions);
+    if (portfolio.positions.length > 0) {
+      try {
+        const symbols = portfolio.positions.map(p => p.symbol).join(',');
+        const response = await fetch(`/api/prices?symbols=${symbols}`);
+        const data = await response.json();
+        
+        const priceMap = new Map();
+        if (data.prices) {
+          for (const p of data.prices) {
+            priceMap.set(p.symbol, p.price);
+            updatePrice(p.symbol, p.price);
+          }
+        }
+        
+        const updatedPositions = portfolio.positions.map(pos => {
+          const livePrice = priceMap.get(pos.symbol) || pos.avgPrice;
+          const pnl = (livePrice - pos.avgPrice) * pos.quantity;
+          return { ...pos, currentPrice: livePrice, pnl };
+        });
+        
+        setPositions(updatedPositions);
+      } catch (error) {
+        console.error('Failed to fetch prices:', error);
+        setPositions(portfolio.positions);
+      }
+    } else {
+      setPositions([]);
+    }
+    
     setBalance(portfolio.balance);
     setRecentTrades(portfolio.trades.slice(-3).reverse());
     setLoading(false);
@@ -33,7 +54,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadPortfolio();
-    const interval = setInterval(loadPortfolio, 2000);
+    const interval = setInterval(loadPortfolio, 15000); // Every 15 seconds
     return () => clearInterval(interval);
   }, []);
 

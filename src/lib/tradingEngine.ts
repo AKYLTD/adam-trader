@@ -1,4 +1,4 @@
-// Trading Engine - Executes actual trades
+// Trading Engine with REAL prices
 
 import { getPortfolio, savePortfolio, type PaperPortfolio, type PaperTrade, type PaperPosition } from './paperTrading';
 
@@ -9,26 +9,36 @@ export interface TradeResult {
   portfolio?: PaperPortfolio;
 }
 
-// Get mock price (in real app, fetch from API)
+// Live price cache (updated by API calls)
+const livePrices: Map<string, number> = new Map();
+
+// Update price from API
+export function updatePrice(symbol: string, price: number) {
+  livePrices.set(symbol, price);
+}
+
+// Get price (returns cached live price or 0)
 export function getPrice(symbol: string): number {
-  const prices: Record<string, number> = {
-    'AAPL': 178.50,
-    'MSFT': 420.15,
-    'GOOGL': 141.80,
-    'AMZN': 178.25,
-    'NVDA': 875.30,
-    'META': 505.75,
-    'TSLA': 175.25,
-    'JPM': 195.40,
-    'V': 275.60,
-    'WMT': 165.30,
-    'BTCUSD': 67500,
-    'ETHUSD': 3450,
-    'SOLUSD': 145,
-    'SPY': 512.50,
-    'QQQ': 438.20,
-  };
-  return prices[symbol] || 100 + Math.random() * 100;
+  return livePrices.get(symbol) || 0;
+}
+
+// Fetch prices from API
+export async function fetchLivePrices(symbols: string[]): Promise<Map<string, number>> {
+  try {
+    const response = await fetch(`/api/prices?symbols=${symbols.join(',')}`);
+    const data = await response.json();
+    
+    if (data.prices) {
+      for (const item of data.prices) {
+        livePrices.set(item.symbol, item.price);
+      }
+    }
+    
+    return livePrices;
+  } catch (error) {
+    console.error('Failed to fetch prices:', error);
+    return livePrices;
+  }
 }
 
 // Execute a buy order
@@ -39,6 +49,11 @@ export function executeBuy(
 ): TradeResult {
   const portfolio = getPortfolio();
   const price = getPrice(symbol);
+  
+  if (price <= 0) {
+    return { success: false, error: 'Price not available. Please wait for market data.' };
+  }
+  
   const totalCost = price * quantity;
 
   if (totalCost > portfolio.balance) {
@@ -101,6 +116,11 @@ export function executeSell(
   }
 
   const price = getPrice(symbol);
+  
+  if (price <= 0) {
+    return { success: false, error: 'Price not available. Please wait for market data.' };
+  }
+  
   const totalValue = price * quantity;
   const pnl = (price - position.avgPrice) * quantity;
   const pnlPercent = ((price - position.avgPrice) / position.avgPrice) * 100;
@@ -132,83 +152,63 @@ export function executeSell(
   return { success: true, trade, portfolio };
 }
 
-// Bot trading strategies
+// Bot trading
 export interface BotConfig {
   strategies: string[];
   symbols: string[];
-  maxPositionSize: number; // Max $ per position
+  maxPositionSize: number;
   maxPositions: number;
 }
 
-const DEFAULT_BOT_CONFIG: BotConfig = {
-  strategies: ['momentum'],
-  symbols: ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA'],
-  maxPositionSize: 5000,
-  maxPositions: 5,
-};
-
-// Simulate strategy signals
 function getSignal(symbol: string, strategy: string): 'buy' | 'sell' | 'hold' {
-  // Random for demo - in real app, use technical indicators
   const rand = Math.random();
   
   switch (strategy) {
     case 'momentum':
-      // 30% buy, 20% sell, 50% hold
-      if (rand < 0.3) return 'buy';
-      if (rand < 0.5) return 'sell';
-      return 'hold';
-    
-    case 'meanreversion':
-      // 25% buy, 25% sell, 50% hold
       if (rand < 0.25) return 'buy';
-      if (rand < 0.5) return 'sell';
+      if (rand < 0.4) return 'sell';
       return 'hold';
-    
-    case 'breakout':
-      // 20% buy, 15% sell, 65% hold (fewer signals)
+    case 'meanreversion':
       if (rand < 0.2) return 'buy';
       if (rand < 0.35) return 'sell';
       return 'hold';
-    
+    case 'breakout':
+      if (rand < 0.15) return 'buy';
+      if (rand < 0.25) return 'sell';
+      return 'hold';
     case 'dca':
-      // Always buy small amounts
-      return 'buy';
-    
+      return rand < 0.3 ? 'buy' : 'hold';
     default:
       return 'hold';
   }
 }
 
-// Execute one bot trading cycle
-export function executeBotCycle(config: BotConfig = DEFAULT_BOT_CONFIG): TradeResult[] {
+export function executeBotCycle(config: BotConfig): TradeResult[] {
   const results: TradeResult[] = [];
   const portfolio = getPortfolio();
 
   for (const symbol of config.symbols) {
+    const price = getPrice(symbol);
+    if (price <= 0) continue; // Skip if no price data
+    
     for (const strategy of config.strategies) {
       const signal = getSignal(symbol, strategy);
       const position = portfolio.positions.find(p => p.symbol === symbol);
       
       if (signal === 'buy') {
-        // Only buy if we don't exceed max positions
         if (portfolio.positions.length < config.maxPositions || position) {
-          const price = getPrice(symbol);
-          const quantity = Math.floor(config.maxPositionSize / price);
+          const quantity = Math.floor(Math.min(config.maxPositionSize, portfolio.balance * 0.1) / price);
           if (quantity > 0 && portfolio.balance >= price * quantity) {
-            const result = executeBuy(symbol, Math.min(quantity, 10), 'US Stocks');
-            if (result.success) {
-              results.push(result);
-            }
+            const result = executeBuy(symbol, Math.min(quantity, 5), 'US Stocks');
+            if (result.success) results.push(result);
+            break; // One trade per symbol per cycle
           }
         }
       } else if (signal === 'sell' && position && position.quantity > 0) {
-        // Sell half the position
         const sellQty = Math.max(1, Math.floor(position.quantity / 2));
         const result = executeSell(symbol, sellQty);
-        if (result.success) {
-          results.push(result);
-        }
+        if (result.success) results.push(result);
+        break;
       }
     }
   }

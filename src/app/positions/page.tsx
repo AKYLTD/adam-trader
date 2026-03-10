@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { TradingModeToggle, useTradingMode } from '@/components/TradingMode';
 import { getPortfolio, type PaperPosition, type PaperTrade } from '@/lib/paperTrading';
-import { getPrice } from '@/lib/tradingEngine';
+import { updatePrice } from '@/lib/tradingEngine';
 
 export default function PositionsPage() {
   const mode = useTradingMode();
@@ -13,24 +13,40 @@ export default function PositionsPage() {
   const [balance, setBalance] = useState(100000);
   const [loading, setLoading] = useState(true);
 
-  // Load positions and update prices
-  const loadPortfolio = () => {
+  // Load positions with LIVE prices
+  const loadPortfolio = async () => {
     const portfolio = getPortfolio();
     
-    // Update current prices and calculate P&L
-    const updatedPositions = portfolio.positions.map(pos => {
-      const currentPrice = getPrice(pos.symbol);
-      const pnl = (currentPrice - pos.avgPrice) * pos.quantity;
-      const pnlPercent = ((currentPrice - pos.avgPrice) / pos.avgPrice) * 100;
-      return {
-        ...pos,
-        currentPrice,
-        pnl,
-        pnlPercent,
-      };
-    });
-
-    setPositions(updatedPositions);
+    if (portfolio.positions.length > 0) {
+      try {
+        const symbols = portfolio.positions.map(p => p.symbol).join(',');
+        const response = await fetch(`/api/prices?symbols=${symbols}`);
+        const data = await response.json();
+        
+        const priceMap = new Map();
+        if (data.prices) {
+          for (const p of data.prices) {
+            priceMap.set(p.symbol, p.price);
+            updatePrice(p.symbol, p.price);
+          }
+        }
+        
+        const updatedPositions = portfolio.positions.map(pos => {
+          const currentPrice = priceMap.get(pos.symbol) || pos.avgPrice;
+          const pnl = (currentPrice - pos.avgPrice) * pos.quantity;
+          const pnlPercent = pos.avgPrice > 0 ? ((currentPrice - pos.avgPrice) / pos.avgPrice) * 100 : 0;
+          return { ...pos, currentPrice, pnl, pnlPercent };
+        });
+        
+        setPositions(updatedPositions);
+      } catch (error) {
+        console.error('Failed to fetch prices:', error);
+        setPositions(portfolio.positions);
+      }
+    } else {
+      setPositions([]);
+    }
+    
     setBalance(portfolio.balance);
     setRecentTrades(portfolio.trades.slice(-5).reverse());
     setLoading(false);
@@ -38,8 +54,8 @@ export default function PositionsPage() {
 
   useEffect(() => {
     loadPortfolio();
-    // Refresh every 2 seconds
-    const interval = setInterval(loadPortfolio, 2000);
+    // Refresh every 15 seconds
+    const interval = setInterval(loadPortfolio, 15000);
     return () => clearInterval(interval);
   }, []);
 
