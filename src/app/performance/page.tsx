@@ -3,11 +3,25 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { TradingModeToggle } from '@/components/TradingMode';
-import { getPortfolio, calculateStats, resetPortfolio, type PaperPortfolio, type PerformanceStats } from '@/lib/paperTrading';
+import { getPortfolio, calculateStats, resetPortfolio, type PaperPortfolio } from '@/lib/paperTrading';
+
+interface StatsData {
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;
+  totalPnl: number;
+  avgWin: number;
+  avgLoss: number;
+  profitFactor: number;
+  currentStreak?: number;
+  bestTrade?: { symbol: string; pnl?: number; pnlPercent?: number } | null;
+  worstTrade?: { symbol: string; pnl?: number; pnlPercent?: number } | null;
+}
 
 export default function PerformancePage() {
   const [portfolio, setPortfolio] = useState<PaperPortfolio | null>(null);
-  const [stats, setStats] = useState<PerformanceStats | null>(null);
+  const [stats, setStats] = useState<StatsData | null>(null);
   const [showReset, setShowReset] = useState(false);
 
   useEffect(() => {
@@ -107,16 +121,16 @@ export default function PerformancePage() {
       </div>
 
       {/* Streak */}
-      {stats.currentStreak !== 0 && (
-        <div className={`card ${stats.currentStreak > 0 ? 'bg-[#00d632]/10 border border-[#00d632]/30' : 'bg-[#ff3b30]/10 border border-[#ff3b30]/30'}`}>
+      {stats.currentStreak && stats.currentStreak !== 0 && (
+        <div className={`card ${(stats.currentStreak || 0) > 0 ? 'bg-[#00d632]/10 border border-[#00d632]/30' : 'bg-[#ff3b30]/10 border border-[#ff3b30]/30'}`}>
           <div className="flex items-center gap-3">
-            <span className="text-2xl">{stats.currentStreak > 0 ? '🔥' : '❄️'}</span>
+            <span className="text-2xl">{(stats.currentStreak || 0) > 0 ? '🔥' : '❄️'}</span>
             <div>
               <p className="font-semibold">
-                {Math.abs(stats.currentStreak)} Trade {stats.currentStreak > 0 ? 'Win' : 'Loss'} Streak
+                {Math.abs(stats.currentStreak || 0)} Trade {(stats.currentStreak || 0) > 0 ? 'Win' : 'Loss'} Streak
               </p>
               <p className="text-xs text-[#8e8e93]">
-                {stats.currentStreak > 0 ? 'Keep it up!' : 'Time to review your strategy'}
+                {(stats.currentStreak || 0) > 0 ? 'Keep it up!' : 'Time to review your strategy'}
               </p>
             </div>
           </div>
