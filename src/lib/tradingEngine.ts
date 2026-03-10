@@ -1,7 +1,7 @@
-// Trading Engine - Executes trades with source tracking
+// Trading Engine - Executes trades
 
 import { getPortfolio, savePortfolio, type PaperPortfolio, type PaperTrade, type PaperPosition } from './paperTrading';
-import { analyzeMarket, getBestTrades, getSellSignals, updatePriceHistory, type MarketAnalysis } from './smartBot';
+import { analyzeMarket, getBuySignals, getSellSignals, type MarketAnalysis } from './smartBot';
 
 export interface TradeResult {
   success: boolean;
@@ -16,53 +16,30 @@ const livePrices: Map<string, number> = new Map();
 
 export function updatePrice(symbol: string, price: number) {
   livePrices.set(symbol, price);
-  updatePriceHistory(symbol, price);
 }
 
 export function getPrice(symbol: string): number {
   return livePrices.get(symbol) || 0;
 }
 
-// Execute a buy order - HUMAN trade
-export function executeBuy(
-  symbol: string, 
-  quantity: number, 
-  market: string = 'US Stocks'
-): TradeResult {
+// Execute HUMAN buy
+export function executeBuy(symbol: string, quantity: number, market: string = 'US Stocks'): TradeResult {
   return executeOrder(symbol, 'buy', quantity, market, 'human');
 }
 
-// Execute a sell order - HUMAN trade
-export function executeSell(
-  symbol: string, 
-  quantity: number
-): TradeResult {
+// Execute HUMAN sell
+export function executeSell(symbol: string, quantity: number): TradeResult {
   return executeOrder(symbol, 'sell', quantity, '', 'human');
 }
 
 // Execute BOT buy
-export function executeBotBuy(
-  symbol: string, 
-  quantity: number, 
-  market: string,
-  strategy: string,
-  analysis?: MarketAnalysis
-): TradeResult {
-  const result = executeOrder(symbol, 'buy', quantity, market, 'bot', strategy);
-  result.analysis = analysis;
-  return result;
+export function executeBotBuy(symbol: string, quantity: number, market: string, strategy: string): TradeResult {
+  return executeOrder(symbol, 'buy', quantity, market, 'bot', strategy);
 }
 
 // Execute BOT sell
-export function executeBotSell(
-  symbol: string, 
-  quantity: number,
-  strategy: string,
-  analysis?: MarketAnalysis
-): TradeResult {
-  const result = executeOrder(symbol, 'sell', quantity, '', 'bot', strategy);
-  result.analysis = analysis;
-  return result;
+export function executeBotSell(symbol: string, quantity: number, strategy: string): TradeResult {
+  return executeOrder(symbol, 'sell', quantity, '', 'bot', strategy);
 }
 
 // Core order execution
@@ -78,14 +55,14 @@ function executeOrder(
   const price = getPrice(symbol);
   
   if (price <= 0) {
-    return { success: false, error: 'Price not available. Waiting for market data.' };
+    return { success: false, error: `No price for ${symbol}` };
   }
 
   if (type === 'buy') {
     const totalCost = price * quantity;
     
     if (totalCost > portfolio.balance) {
-      return { success: false, error: `Insufficient funds. Need $${totalCost.toFixed(2)}, have $${portfolio.balance.toFixed(2)}` };
+      return { success: false, error: `Need $${totalCost.toFixed(0)}, have $${portfolio.balance.toFixed(0)}` };
     }
 
     portfolio.balance -= totalCost;
@@ -122,6 +99,8 @@ function executeOrder(
     };
     portfolio.trades.push(trade);
     savePortfolio(portfolio);
+    
+    console.log(`✅ ${source.toUpperCase()} BUY: ${quantity} ${symbol} @ $${price.toFixed(2)}`);
     return { success: true, trade, portfolio };
     
   } else {
@@ -162,6 +141,8 @@ function executeOrder(
     };
     portfolio.trades.push(trade);
     savePortfolio(portfolio);
+    
+    console.log(`✅ ${source.toUpperCase()} SELL: ${quantity} ${symbol} @ $${price.toFixed(2)} | P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`);
     return { success: true, trade, portfolio };
   }
 }
@@ -176,98 +157,103 @@ export interface BotConfig {
 
 export async function runSmartBotCycle(config: BotConfig): Promise<TradeResult[]> {
   const results: TradeResult[] = [];
-  const portfolio = getPortfolio();
   
-  // Analyze all symbols
+  console.log('🤖 Bot cycle starting...');
+  
+  // Fetch and analyze market
   const analyses = await analyzeMarket(config.symbols);
+  
   if (analyses.length === 0) {
-    console.log('No market data available');
+    console.log('❌ No market data');
     return results;
   }
-  
-  // Check existing positions for sell signals
+
+  // Update price cache
+  for (const a of analyses) {
+    updatePrice(a.symbol, a.price);
+  }
+
+  const portfolio = getPortfolio();
+  console.log(`💰 Balance: $${portfolio.balance.toFixed(0)} | Positions: ${portfolio.positions.length}`);
+
+  // Check existing positions for sell opportunities
   for (const position of portfolio.positions) {
     const analysis = analyses.find(a => a.symbol === position.symbol);
     if (!analysis) continue;
     
-    // Sell if strong sell signal OR take profit at 5%+ OR stop loss at -3%
-    const currentPrice = getPrice(position.symbol);
+    const currentPrice = analysis.price;
     const pnlPercent = ((currentPrice - position.avgPrice) / position.avgPrice) * 100;
     
+    // Sell conditions
     let shouldSell = false;
     let reason = '';
     
-    if (analysis.signal === 'strong_sell' && analysis.confidence > 60) {
+    if (pnlPercent >= 3) {
       shouldSell = true;
-      reason = 'Strong sell signal';
-    } else if (pnlPercent >= 5 && config.riskLevel !== 'aggressive') {
+      reason = `Taking profit +${pnlPercent.toFixed(1)}%`;
+    } else if (pnlPercent <= -2) {
       shouldSell = true;
-      reason = 'Taking profit at 5%+';
-    } else if (pnlPercent <= -3 && config.riskLevel !== 'aggressive') {
+      reason = `Stop loss ${pnlPercent.toFixed(1)}%`;
+    } else if (analysis.signal === 'strong_sell') {
       shouldSell = true;
-      reason = 'Stop loss triggered at -3%';
+      reason = analysis.reason;
     }
     
     if (shouldSell) {
-      const result = executeBotSell(position.symbol, position.quantity, reason, analysis);
-      if (result.success) {
-        results.push(result);
-        console.log(`🤖 BOT SOLD ${position.symbol}: ${reason}`);
-      }
+      console.log(`📤 Selling ${position.symbol}: ${reason}`);
+      const result = executeBotSell(position.symbol, position.quantity, reason);
+      if (result.success) results.push(result);
     }
   }
-  
+
   // Look for buy opportunities
-  const buySignals = getBestTrades(analyses);
-  const currentPositions = getPortfolio().positions.length;
+  const buySignals = getBuySignals(analyses);
+  const currentPositionCount = getPortfolio().positions.length;
   
-  for (const analysis of buySignals) {
-    if (currentPositions + results.filter(r => r.trade?.type === 'buy').length >= config.maxPositions) {
-      break; // Max positions reached
+  console.log(`📊 Buy signals: ${buySignals.length}`);
+  
+  for (const signal of buySignals) {
+    // Check max positions
+    if (currentPositionCount + results.filter(r => r.trade?.type === 'buy').length >= config.maxPositions) {
+      console.log('Max positions reached');
+      break;
     }
     
     // Skip if already have position
-    if (portfolio.positions.find(p => p.symbol === analysis.symbol)) {
+    if (portfolio.positions.find(p => p.symbol === signal.symbol)) {
       continue;
     }
     
-    // Calculate position size based on risk level
+    // Only trade high confidence signals
+    const minConfidence = config.riskLevel === 'aggressive' ? 50 : config.riskLevel === 'moderate' ? 60 : 70;
+    if (signal.confidence < minConfidence) {
+      continue;
+    }
+    
+    // Calculate quantity
+    const price = signal.price;
     let positionSize = config.maxPositionSize;
-    if (config.riskLevel === 'conservative') {
-      positionSize = config.maxPositionSize * 0.5;
-    } else if (config.riskLevel === 'aggressive') {
-      positionSize = config.maxPositionSize * 1.5;
-    }
-    
-    // Only buy with high confidence
-    const minConfidence = config.riskLevel === 'aggressive' ? 50 : 60;
-    if (analysis.confidence < minConfidence) {
-      continue;
-    }
-    
-    const price = getPrice(analysis.symbol);
-    if (price <= 0) continue;
+    if (config.riskLevel === 'conservative') positionSize *= 0.5;
+    if (config.riskLevel === 'aggressive') positionSize *= 1.5;
     
     const quantity = Math.floor(positionSize / price);
     if (quantity <= 0) continue;
     
     const balance = getPortfolio().balance;
-    if (price * quantity > balance) continue;
+    if (price * quantity > balance) {
+      console.log(`Not enough balance for ${signal.symbol}`);
+      continue;
+    }
     
-    const result = executeBotBuy(
-      analysis.symbol,
-      quantity,
-      'US Stocks',
-      `${analysis.signal} (${analysis.confidence}% confidence)`,
-      analysis
-    );
-    
+    console.log(`📥 Buying ${signal.symbol}: ${signal.reason}`);
+    const result = executeBotBuy(signal.symbol, quantity, 'US Stocks', signal.reason);
     if (result.success) {
+      result.analysis = signal;
       results.push(result);
-      console.log(`🤖 BOT BOUGHT ${analysis.symbol}: ${analysis.reasons[0]}`);
     }
   }
   
+  console.log(`🤖 Bot cycle done. Trades: ${results.length}`);
   return results;
 }
 

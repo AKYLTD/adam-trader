@@ -7,7 +7,11 @@ import { runSmartBotCycle, type BotConfig } from '@/lib/tradingEngine';
 import { getPortfolio, getBotTrades, calculateStats, type PaperTrade } from '@/lib/paperTrading';
 import { setBotStatus } from '@/components/BotIndicator';
 
-const BOT_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'META', 'AMZN', 'AMD', 'NFLX', 'JPM'];
+// More symbols = more opportunities
+const BOT_SYMBOLS = [
+  'AAPL', 'MSFT', 'GOOGL', 'NVDA', 'TSLA', 'META', 'AMZN', 'AMD', 'NFLX', 'JPM',
+  'V', 'MA', 'DIS', 'PYPL', 'INTC', 'WMT', 'PG', 'JNJ', 'UNH', 'HD'
+];
 
 type RiskLevel = 'conservative' | 'moderate' | 'aggressive';
 
@@ -60,8 +64,8 @@ export default function BotPage() {
     
     const config: BotConfig = {
       symbols: BOT_SYMBOLS,
-      maxPositionSize: riskLevel === 'aggressive' ? 10000 : riskLevel === 'moderate' ? 5000 : 2500,
-      maxPositions: riskLevel === 'aggressive' ? 8 : riskLevel === 'moderate' ? 5 : 3,
+      maxPositionSize: riskLevel === 'aggressive' ? 15000 : riskLevel === 'moderate' ? 8000 : 4000,
+      maxPositions: riskLevel === 'aggressive' ? 10 : riskLevel === 'moderate' ? 6 : 3,
       riskLevel,
     };
     
@@ -90,7 +94,7 @@ export default function BotPage() {
   useEffect(() => {
     if (botEnabled) {
       runCycle();
-      intervalRef.current = setInterval(runCycle, 30000); // Every 30 seconds
+      intervalRef.current = setInterval(runCycle, 15000); // Every 15 seconds
     } else {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
@@ -220,28 +224,25 @@ export default function BotPage() {
         <div className="space-y-2 text-sm">
           <div className="flex items-center gap-2">
             <span className="text-green-400">✓</span>
-            <span>RSI Analysis (Buy oversold, Sell overbought)</span>
+            <span>Buy the Dip (down 1.5%+ = buy signal)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-green-400">✓</span>
-            <span>Moving Average Crossovers</span>
+            <span>Sell the Rally (up 2%+ = sell signal)</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-green-400">✓</span>
-            <span>Momentum Detection</span>
+            <span>Auto Take Profit at +3%</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-green-400">✓</span>
-            <span>Auto Stop-Loss at -3%</span>
+            <span>Auto Stop-Loss at -2%</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-green-400">✓</span>
-            <span>Take Profit at +5%</span>
+            <span>Scans {BOT_SYMBOLS.length} stocks every 15s</span>
           </div>
         </div>
-        <p className="text-xs text-[#636366] mt-3">
-          📊 Analyzes: {BOT_SYMBOLS.join(', ')}
-        </p>
       </div>
 
       {/* Mode Warning */}
