@@ -258,12 +258,13 @@ function ChartsContent() {
             )}
           </div>
         </div>
-        <div className="aspect-[4/3] md:aspect-[16/9]">
+        <div className="aspect-[4/3] md:aspect-[16/9] bg-[#0d0d0d] relative" style={{ minHeight: '280px' }}>
           <iframe
             key={selectedSymbol}
-            src={`https://s.tradingview.com/widgetembed/?frameElementId=tv&symbol=${selectedSymbol}&interval=D&hidesidetoolbar=1&symboledit=0&saveimage=0&toolbarbg=000000&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=0&allow_symbol_change=0&backgroundColor=000000`}
+            src={`https://s.tradingview.com/embed-widget/symbol-overview/?symbols=${encodeURIComponent(selectedSymbol)}&chartOnly=true&width=100%25&height=100%25&locale=en&colorTheme=dark&autosize=true&showVolume=false&showMA=false&hideDateRanges=false&hideMarketStatus=true&hideSymbolLogo=true&scalePosition=right&scaleMode=Normal&fontFamily=-apple-system%2C%20BlinkMacSystemFont%2C%20Trebuchet%20MS%2C%20Roboto%2C%20Ubuntu%2C%20sans-serif&fontSize=10&noTimeScale=false&valuesTracking=1&changeMode=price-and-percent&chartType=area&lineWidth=2&lineType=0&dateRanges=1d%7C1m%7C3m%7C12m%7C60m%7Call&backgroundColor=rgba(0%2C%200%2C%200%2C%201)&gridLineColor=rgba(30%2C%2030%2C%2030%2C%201)&lineColor=rgba(0%2C%20122%2C%20255%2C%201)&topColor=rgba(0%2C%20122%2C%20255%2C%200.3)&bottomColor=rgba(0%2C%200%2C%200%2C%200)`}
             className="w-full h-full border-0"
-            loading="lazy"
+            style={{ minHeight: '280px' }}
+            allow="autoplay"
           />
         </div>
       </div>
