@@ -258,38 +258,15 @@ function ChartsContent() {
         </div>
       </div>
 
-      {/* Chart - Using Finviz chart images (fast & reliable) */}
-      <div className="card !p-0 overflow-hidden bg-[#0d0d0d]">
-        <img 
+      {/* TradingView Chart - Original Working Version */}
+      <div className="card !p-0 overflow-hidden">
+        <iframe
           key={selectedSymbol}
-          src={`https://finviz.com/chart.ashx?t=${selectedSymbol}&ty=c&ta=1&p=d&s=l`}
-          alt={`${selectedSymbol} chart`}
-          className="w-full"
-          style={{ minHeight: '200px', filter: 'invert(1) hue-rotate(180deg)' }}
-          onError={(e) => {
-            // Fallback to simple Yahoo chart
-            (e.target as HTMLImageElement).src = `https://chart.finance.yahoo.com/z?s=${selectedSymbol}&t=3m&q=l&l=on&z=l`;
-          }}
+          src={`https://s.tradingview.com/widgetembed/?frameElementId=tradingview_widget&symbol=${selectedSymbol}&interval=D&hidesidetoolbar=0&symboledit=1&saveimage=1&toolbarbg=000000&studies=RSI%40tv-basicstudies&theme=dark&style=1&timezone=exchange&withdateranges=1&showpopupbutton=1&locale=en`}
+          style={{ width: '100%', height: '500px' }}
+          frameBorder="0"
+          allowFullScreen
         />
-        <div className="p-2 flex justify-center gap-2 border-t border-[#262626]">
-          <a 
-            href={`https://finance.yahoo.com/quote/${selectedSymbol}`} 
-            target="_blank" 
-            rel="noopener"
-            className="text-xs text-[#007aff] hover:underline"
-          >
-            Yahoo Finance ↗
-          </a>
-          <span className="text-[#636366]">|</span>
-          <a 
-            href={`https://www.tradingview.com/chart/?symbol=${selectedSymbol}`} 
-            target="_blank" 
-            rel="noopener"
-            className="text-xs text-[#007aff] hover:underline"
-          >
-            TradingView ↗
-          </a>
-        </div>
       </div>
 
       {/* Buy/Sell Buttons */}
