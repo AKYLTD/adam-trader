@@ -112,7 +112,6 @@ function ChartsContent() {
   const [currentPrice, setCurrentPrice] = useState(0);
   const [priceChange, setPriceChange] = useState(0);
   const [priceLoading, setPriceLoading] = useState(true);
-  const [chartLoaded, setChartLoaded] = useState(false);
 
   const selectedAsset = ALL_ASSETS.find(a => a.symbol === selectedSymbol);
   
@@ -144,7 +143,6 @@ function ChartsContent() {
   };
 
   useEffect(() => {
-    setChartLoaded(false);
     fetchPrice(selectedSymbol);
     const interval = setInterval(() => fetchPrice(selectedSymbol), 15000);
     return () => clearInterval(interval);
@@ -174,14 +172,6 @@ function ChartsContent() {
     } else {
       setTradeStatus({ success: false, message: result.error || 'Trade failed' });
     }
-  };
-
-  // Get TradingView symbol format
-  const getTVSymbol = (symbol: string) => {
-    if (symbol.endsWith('USD')) return `COINBASE:${symbol.replace('USD', '')}USD`;
-    if (symbol.includes('!')) return `CME_MINI:${symbol}`;
-    if (symbol.includes('/') || ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD'].includes(symbol)) return `FX:${symbol}`;
-    return `NASDAQ:${symbol}`;
   };
 
   return (
@@ -268,24 +258,38 @@ function ChartsContent() {
         </div>
       </div>
 
-      {/* Chart - Using simple image-based chart as fallback */}
-      <div className="card !p-0 overflow-hidden bg-[#0d0d0d]" style={{ minHeight: '300px' }}>
-        {!chartLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center z-20 bg-[#0d0d0d]">
-            <div className="text-center">
-              <div className="animate-spin w-8 h-8 border-2 border-[#007aff] border-t-transparent rounded-full mx-auto mb-2" />
-              <p className="text-xs text-[#636366]">Loading chart...</p>
-            </div>
-          </div>
-        )}
-        <iframe
+      {/* Chart - Using Finviz chart images (fast & reliable) */}
+      <div className="card !p-0 overflow-hidden bg-[#0d0d0d]">
+        <img 
           key={selectedSymbol}
-          src={`https://www.tradingview.com/chart/?symbol=${getTVSymbol(selectedSymbol)}&theme=dark&style=1&timezone=exchange&hide_top_toolbar=1&hide_side_toolbar=1&withdateranges=0&save_image=0`}
-          className="w-full border-0"
-          style={{ height: '300px' }}
-          onLoad={() => setChartLoaded(true)}
-          sandbox="allow-scripts allow-same-origin"
+          src={`https://finviz.com/chart.ashx?t=${selectedSymbol}&ty=c&ta=1&p=d&s=l`}
+          alt={`${selectedSymbol} chart`}
+          className="w-full"
+          style={{ minHeight: '200px', filter: 'invert(1) hue-rotate(180deg)' }}
+          onError={(e) => {
+            // Fallback to simple Yahoo chart
+            (e.target as HTMLImageElement).src = `https://chart.finance.yahoo.com/z?s=${selectedSymbol}&t=3m&q=l&l=on&z=l`;
+          }}
         />
+        <div className="p-2 flex justify-center gap-2 border-t border-[#262626]">
+          <a 
+            href={`https://finance.yahoo.com/quote/${selectedSymbol}`} 
+            target="_blank" 
+            rel="noopener"
+            className="text-xs text-[#007aff] hover:underline"
+          >
+            Yahoo Finance ↗
+          </a>
+          <span className="text-[#636366]">|</span>
+          <a 
+            href={`https://www.tradingview.com/chart/?symbol=${selectedSymbol}`} 
+            target="_blank" 
+            rel="noopener"
+            className="text-xs text-[#007aff] hover:underline"
+          >
+            TradingView ↗
+          </a>
+        </div>
       </div>
 
       {/* Buy/Sell Buttons */}

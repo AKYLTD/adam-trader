@@ -1,4 +1,4 @@
-// Smart Trading Bot - Trades based on daily price movements
+// Smart Trading Bot - AGGRESSIVE dip buyer
 
 export interface MarketAnalysis {
   symbol: string;
@@ -10,41 +10,37 @@ export interface MarketAnalysis {
   reason: string;
 }
 
-// Analyze based on daily change - SIMPLE but effective
+// Analyze based on daily change - MORE AGGRESSIVE
 export function analyzeSymbol(symbol: string, price: number, changePercent: number): MarketAnalysis {
   let signal: MarketAnalysis['signal'] = 'hold';
   let confidence = 50;
   let reason = '';
 
-  // Strategy: Buy dips, sell rallies
-  if (changePercent <= -3) {
+  // AGGRESSIVE: Buy any dip, sell any rally
+  if (changePercent <= -2) {
     signal = 'strong_buy';
-    confidence = 85;
-    reason = `🔥 Down ${changePercent.toFixed(1)}% - Strong buy opportunity!`;
-  } else if (changePercent <= -1.5) {
+    confidence = 90;
+    reason = `🔥 Down ${changePercent.toFixed(1)}% - STRONG BUY!`;
+  } else if (changePercent <= -0.5) {
     signal = 'buy';
-    confidence = 70;
-    reason = `📉 Down ${changePercent.toFixed(1)}% - Good entry point`;
-  } else if (changePercent >= 4) {
+    confidence = 75;
+    reason = `📉 Down ${changePercent.toFixed(1)}% - Buy the dip`;
+  } else if (changePercent < 0) {
+    signal = 'buy';
+    confidence = 60;
+    reason = `📉 Slightly red ${changePercent.toFixed(2)}%`;
+  } else if (changePercent >= 3) {
     signal = 'strong_sell';
-    confidence = 80;
+    confidence = 85;
     reason = `🚀 Up ${changePercent.toFixed(1)}% - Take profits!`;
-  } else if (changePercent >= 2) {
+  } else if (changePercent >= 1) {
     signal = 'sell';
     confidence = 65;
     reason = `📈 Up ${changePercent.toFixed(1)}% - Consider selling`;
-  } else if (changePercent < -0.5) {
-    signal = 'buy';
-    confidence = 55;
-    reason = `📉 Slight dip ${changePercent.toFixed(1)}%`;
-  } else if (changePercent > 0.5) {
-    signal = 'hold';
-    confidence = 50;
-    reason = `📊 Flat day ${changePercent.toFixed(1)}%`;
   } else {
     signal = 'hold';
     confidence = 40;
-    reason = `⏸️ No clear signal`;
+    reason = `⏸️ Flat ${changePercent.toFixed(2)}%`;
   }
 
   return { symbol, price, change: price * changePercent / 100, changePercent, signal, confidence, reason };
@@ -57,7 +53,7 @@ export async function analyzeMarket(symbols: string[]): Promise<MarketAnalysis[]
     const data = await response.json();
     
     if (!data.prices || data.prices.length === 0) {
-      console.log('No price data received');
+      console.log('❌ No price data received');
       return [];
     }
 
@@ -65,8 +61,12 @@ export async function analyzeMarket(symbols: string[]): Promise<MarketAnalysis[]
     for (const p of data.prices) {
       const analysis = analyzeSymbol(p.symbol, p.price, p.changePercent);
       analyses.push(analysis);
-      console.log(`📊 ${p.symbol}: $${p.price.toFixed(2)} (${p.changePercent >= 0 ? '+' : ''}${p.changePercent.toFixed(2)}%) → ${analysis.signal.toUpperCase()}`);
     }
+    
+    // Log summary
+    const buys = analyses.filter(a => a.signal.includes('buy')).length;
+    const sells = analyses.filter(a => a.signal.includes('sell')).length;
+    console.log(`📊 Analysis: ${buys} buys, ${sells} sells, ${analyses.length - buys - sells} hold`);
     
     return analyses;
   } catch (error) {
