@@ -2,37 +2,46 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --t212-bg: #0d0d0d;
+  --t212-card: #1a1a1a;
+  --t212-card-hover: #242424;
+  --t212-border: #2a2a2a;
+  --t212-green: #00c853;
+  --t212-red: #ff1744;
+  --t212-blue: #2979ff;
+  --t212-text: #ffffff;
+  --t212-text-secondary: #9e9e9e;
+}
+
 body {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  background: var(--t212-bg);
+  color: var(--t212-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-
-/* Range slider styling */
+/* Range slider */
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  height: 4px;
+  border-radius: 2px;
+  background: var(--t212-border);
 }
 
 input[type="range"]::-webkit-slider-thumb {
@@ -40,21 +49,109 @@ input[type="range"]::-webkit-slider-thumb {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #10b981;
+  background: var(--t212-green);
   cursor: pointer;
 }
 
-/* Glow effects */
-.card-glow {
-  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+/* T212 style cards */
+.t212-card {
+  background: var(--t212-card);
+  border-radius: 16px;
+  padding: 16px;
 }
 
-/* Animation for live indicator */
-@keyframes pulse-green {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+.t212-card-interactive {
+  background: var(--t212-card);
+  border-radius: 16px;
+  padding: 16px;
+  transition: background 0.2s;
 }
 
-.animate-pulse-green {
-  animation: pulse-green 2s infinite;
+.t212-card-interactive:hover {
+  background: var(--t212-card-hover);
+}
+
+/* T212 button styles */
+.t212-btn-primary {
+  background: var(--t212-green);
+  color: black;
+  font-weight: 600;
+  padding: 12px 24px;
+  border-radius: 12px;
+  transition: opacity 0.2s;
+}
+
+.t212-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.t212-btn-secondary {
+  background: var(--t212-card);
+  color: white;
+  font-weight: 500;
+  padding: 12px 24px;
+  border-radius: 12px;
+  transition: background 0.2s;
+}
+
+.t212-btn-secondary:hover {
+  background: var(--t212-card-hover);
+}
+
+/* Mobile bottom nav */
+.mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--t212-card);
+  border-top: 1px solid var(--t212-border);
+  padding: 8px 0;
+  padding-bottom: env(safe-area-inset-bottom, 8px);
+  z-index: 50;
+}
+
+/* Hide scrollbar for mobile */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* Animations */
+@keyframes slideUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* Green/Red colors */
+.text-gain {
+  color: var(--t212-green);
+}
+
+.text-loss {
+  color: var(--t212-red);
+}
+
+.bg-gain {
+  background: rgba(0, 200, 83, 0.15);
+}
+
+.bg-loss {
+  background: rgba(255, 23, 68, 0.15);
 }
